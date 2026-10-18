@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="format-detection" content="telephone=no">
 <title>shayel khatiwoda</title>
 <meta name="description" content="stuff i've done since eleven — youtube ideation, scripting, creator workflows, and agentic software for creators.">
 <meta property="og:title" content="shayel khatiwoda">
@@ -23,15 +25,21 @@
     --accent: #2346d8;
   }
   * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   body {
     margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
     background: var(--bg);
     color: var(--ink);
     font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
     font-size: 15px;
     line-height: 1.65;
+    overflow-wrap: break-word;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
   }
+  a, li div { overflow-wrap: anywhere; }
   ::selection { background: var(--accent); color: #fff; }
   a {
     color: var(--ink);
@@ -46,7 +54,7 @@
   main {
     max-width: 600px;
     margin: 0 auto;
-    padding: 72px 24px 96px;
+    padding: 72px max(24px, env(safe-area-inset-right)) max(96px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
     display: flex;
     flex-direction: column;
     gap: 64px;
@@ -63,15 +71,23 @@
   .age { font-style: italic; font-size: 28px; line-height: 1; color: var(--accent); }
   .age span { font-size: 16px; font-style: normal; color: var(--muted); font-family: "IBM Plex Mono", monospace; }
 
-  section { display: flex; flex-direction: column; gap: 12px; }
-  .links { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+  section { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  section > a, .links a { display: inline-flex; align-items: center; min-height: 44px; }
+  .links { display: flex; flex-wrap: wrap; gap: 0 28px; }
   .contact { padding-top: 32px; border-top: 1px solid var(--rule); }
   .contact p { margin: 0; }
   .sign { font-style: italic; font-size: 22px; color: var(--accent); }
 
   @media (max-width: 480px) {
-    main { padding-top: 48px; gap: 52px; }
+    body { font-size: 16px; line-height: 1.6; }
+    main { padding-top: max(48px, env(safe-area-inset-top)); gap: 52px; }
     h1 { font-size: 34px; }
+    ol { gap: 36px; }
+    .age { font-size: 26px; }
+    .label { font-size: 14px; }
+  }
+  @media (max-width: 340px) {
+    h1 { font-size: 30px; }
   }
   @media (prefers-reduced-motion: reduce) { a { transition: none; } }
 </style>
@@ -91,7 +107,7 @@
     </li>
     <li>
       <div class="age serif">15</div>
-      <div>got 1,600,000 subscribers on youtube in a single month.</div>
+      <div>got 1,600,000 subscribers on <a href="https://www.youtube.com/@sh4yel" target="_blank" rel="noopener">youtube</a> in a single month.</div>
     </li>
     <li>
       <div class="age serif">16</div>
