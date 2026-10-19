@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Shayel Khatiwoda's ESP 103 Creative Mindsets Portfolio, built as a playable game.">
+<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Shayel's Final Cut</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a playable "video edit" — sticky HUD with three mindset meters; each chapter is a level with a mini-game; the final cut unlocks when the meters fill */
+:root{
+  --paper:#F3F4F8; --card:#FFFFFF; --ink:#1A2140; --muted:#5B6382; --line:#D9DCE8;
+  --marker:#FFD23F; --play:#E4523B; --cur:#2F7DD8; --conf:#E4523B; --res:#2E9E6B;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Literata",Georgia,"Times New Roman",serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#11152A; --card:#1A2039; --ink:#ECEEF7; --muted:#A2A8C4; --line:#2C3354;
+  --marker:#FFD23F; --play:#FF6A52; --cur:#5EA4F2; --conf:#FF6A52; --res:#4CC48C; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#11152A; --card:#1A2039; --ink:#ECEEF7; --muted:#A2A8C4; --line:#2C3354;
+  --marker:#FFD23F; --play:#FF6A52; --cur:#5EA4F2; --conf:#FF6A52; --res:#4CC48C; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.65}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--card)}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);line-height:1.05;text-wrap:balance;margin:0}
+p{margin:0 0 1em;max-width:65ch}
+.mono{font-family:var(--mono);font-size:13px;letter-spacing:.04em}
+.label{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+button{font:inherit;color:inherit}
+button:focus-visible,[tabindex]:focus-visible,a:focus-visible{outline:2px solid var(--cur);outline-offset:2px}
+.btn{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border:2px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:8px;padding:10px 16px;cursor:pointer;transition:transform .1s;text-decoration:none;display:inline-block}
+.btn:active{transform:translateY(2px)}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn:disabled{opacity:.4;cursor:default}
+
+/* placeholder highlight */
+.edit{background:linear-gradient(transparent 55%,color-mix(in srgb,var(--marker) 70%,transparent) 55%);padding:0 2px}
+.edit::before{content:"✎ ";font-family:var(--mono);font-size:.7em;color:var(--muted)}
+body.final .edit{background:none}
+body.final .edit::before{content:none}
+.slot{border:2px dashed var(--line);border-radius:10px;padding:24px 18px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:13px;overflow:hidden}
+.slot.has-img{padding:0;border-style:solid}
+.slot img{display:block;width:100%;height:auto}
+body.final .slot{border-style:solid}
+
+/* HUD */
+.hud{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--card);border-bottom:1px solid var(--line)}
+.hud .wrap{display:flex;align-items:center;gap:18px;padding-block:10px;flex-wrap:wrap}
+.lvl{font-family:var(--display);font-weight:800;font-size:17px;white-space:nowrap}
+.lvl small{display:block;font-family:var(--mono);font-weight:400;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.meters{display:flex;gap:14px;flex:1;min-width:0}
+.meter{flex:1;min-width:0}
+.meter .label{font-size:10px;display:flex;justify-content:space-between}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:3px}
+.bar i{display:block;height:100%;width:0;border-radius:4px;transition:width .5s cubic-bezier(.3,1.4,.5,1)}
+.meter.cur i{background:var(--cur)}.meter.conf i{background:var(--conf)}.meter.res i{background:var(--res)}
+.meter.full .label{color:var(--ink)}
+.hudbtns{display:flex;gap:8px}
+.chip{font-family:var(--mono);font-size:12px;border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+.chip.primary{background:var(--marker);color:#1A2140;border-color:var(--marker);font-weight:600}
+.progress i{display:block;height:3px;width:0;background:var(--play)}
+
+/* edit bar + drawer */
+.editbar{background:var(--marker);color:#1A2140}
+.editbar .wrap{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding-block:10px}
+.editbar p{margin:0;font-size:15px;flex:1;min-width:220px}
+.editbar .chip{border-color:#1A2140;color:#1A2140}
+.editbar .chip.go{background:#1A2140;color:#FFD23F}
+.editbar .status{font-family:var(--mono);font-size:12px}
+body.editing [data-k]{outline:1px dashed color-mix(in srgb,var(--cur) 60%,transparent);outline-offset:3px;border-radius:2px;cursor:text}
+body.editing [data-k]:focus{outline:2px solid var(--cur);background:color-mix(in srgb,var(--cur) 8%,transparent)}
+body.editing .slot{cursor:pointer;border-color:var(--cur);color:var(--cur)}
+body.editing .slot::after{content:"Click to upload a photo or PDF";display:block;margin-top:6px;font-weight:600}
+body.editing .slot.has-img::after{content:"Click to replace file";padding:8px}
+.pdfcard{display:flex;flex-direction:column;text-align:left;color:var(--ink)}
+.pdfcard .thumb{background:var(--paper);display:grid;place-items:center;min-height:160px;border-bottom:1px solid var(--line);cursor:zoom-in;border:0;padding:0;width:100%}
+.pdfcard .thumb canvas{display:block;width:100%;height:auto}
+.pdfcard .meta{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;flex-wrap:wrap}
+.pdfcard .meta b{font-family:var(--display);font-size:15px;min-width:0;overflow-wrap:anywhere}
+.pdfcard .meta a{font-family:var(--mono);font-size:12px;color:var(--cur);white-space:nowrap}
+.badge{font-family:var(--mono);font-size:11px;letter-spacing:.08em;background:var(--play);color:#fff;border-radius:4px;padding:2px 6px;margin-right:8px}
+.viewer{position:fixed;inset:0;z-index:70;background:color-mix(in srgb,#0B0E1C 88%,transparent);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.viewer .vbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));color:#ECEEF7}
+.viewer .vbar b{font-family:var(--display);font-size:17px;min-width:0;overflow-wrap:anywhere}
+.viewer .vbar .chip{color:#ECEEF7;border-color:#5B6382}
+.viewer .pages{flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:16px;padding:8px 16px 32px}
+.viewer .pages canvas{max-width:min(900px,100%);height:auto;background:#fff;border-radius:4px;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+.viewer .pages p{color:#ECEEF7}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(520px,100%);z-index:50;background:var(--card);border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(0,0,0,.18);transform:translateX(105%);transition:transform .3s;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.drawer.open{transform:none}
+.drawer header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.drawer header h3{font-size:22px}
+.drawer .body{overflow-y:auto;padding:16px 20px 24px;display:flex;flex-direction:column;gap:22px}
+.field label{display:block;font-family:var(--display);font-weight:600;font-size:17px}
+.field .hint{font-family:var(--mono);font-size:12px;color:var(--muted);margin:2px 0 8px;line-height:1.5}
+.field textarea{width:100%;min-height:150px;font-family:var(--mono);font-size:13px;line-height:1.5;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);resize:vertical}
+.drawer footer{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,160%);z-index:60;background:var(--ink);color:var(--paper);border-radius:12px;padding:12px 18px;display:flex;gap:12px;align-items:center;transition:transform .35s cubic-bezier(.3,1.4,.5,1);max-width:calc(100% - 32px)}
+.toast.show{transform:translate(-50%,0)}
+.toast .ic{font-size:22px}
+.toast b{display:block;font-family:var(--display);font-size:16px}
+.toast span{font-family:var(--mono);font-size:12px;color:var(--marker)}
+
+/* hero */
+.hero{padding-block:64px 48px}
+.hero .label{margin-bottom:18px}
+.hero h1{font-size:clamp(42px,8vw,98px);font-weight:800;letter-spacing:-.02em}
+.hero h1 .strike{position:relative;color:var(--muted)}
+.hero h1 .strike::after{content:"";position:absolute;left:-2%;right:-2%;top:54%;height:.09em;background:var(--play);transform:scaleX(0);transform-origin:left;animation:strike .7s .5s ease-out forwards}
+@keyframes strike{to{transform:scaleX(1)}}
+.hero .dek{font-size:21px;margin-top:24px;color:var(--muted)}
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:32px}
+.how div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.how b{font-family:var(--display);font-size:18px;display:block;margin-bottom:4px}
+.how p{font-size:15px;margin:0;color:var(--muted)}
+
+/* chapters */
+section.ch{padding-block:64px;border-top:1px solid var(--line)}
+.chhead{display:grid;grid-template-columns:130px 1fr;gap:20px;align-items:start;margin-bottom:28px}
+.chhead .lv{font-family:var(--mono);font-size:12px;color:var(--muted);padding-top:10px;letter-spacing:.08em}
+.chhead h2{font-size:clamp(30px,5vw,54px);font-weight:800}
+.mind{display:inline-block;font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:999px;color:#fff;margin-top:12px}
+.m-cur{background:var(--cur)}.m-conf{background:var(--conf)}.m-res{background:var(--res)}
+.cols{display:grid;grid-template-columns:1.2fr 1fr;gap:40px}
+.cols>*{min-width:0}
+.pull{font-family:var(--display);font-size:clamp(23px,3vw,32px);font-weight:600;line-height:1.2;border-left:4px solid var(--marker);padding-left:18px;margin:24px 0}
+.evid{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px;margin-top:24px}
+.evid h3{font-size:14px;font-family:var(--mono);font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.src{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.game{background:var(--card);border:2px solid var(--ink);border-radius:14px;padding:20px;box-shadow:6px 6px 0 var(--ink);min-width:0}
+.game .gtitle{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.game .gtitle h3{font-size:22px}
+.reward{font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+/* idea storm */
+.arena{position:relative;height:300px;border-radius:10px;background:repeating-linear-gradient(0deg,transparent 0 31px,var(--line) 31px 32px),var(--paper);overflow:hidden;border:1px solid var(--line)}
+.arena .center{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px}
+.idea{position:absolute;max-width:190px;background:var(--marker);color:#1A2140;font-family:var(--display);font-weight:600;font-size:14px;line-height:1.2;padding:10px 12px;border-radius:4px;border:0;cursor:pointer;box-shadow:2px 3px 0 rgba(0,0,0,.18);animation:pop .25s ease-out}
+.idea.me{background:var(--play);color:#fff;font-size:16px;animation:pop .25s ease-out,wob .6s ease-in-out infinite alternate}
+.idea.gone{opacity:0;transform:scale(.6);transition:all .2s;pointer-events:none}
+@keyframes pop{from{transform:scale(.3) rotate(-8deg)}}
+@keyframes wob{to{transform:rotate(3deg) scale(1.06)}}
+.score{display:flex;gap:18px;margin-top:12px;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+
+/* why ladder */
+.ladder{display:flex;flex-direction:column;gap:8px}
+.rung{display:flex;gap:12px;align-items:baseline;padding:10px 14px;border-radius:8px;background:var(--paper);border:1px solid var(--line);animation:pop .25s}
+.rung .n{font-family:var(--mono);font-size:12px;color:var(--cur);flex:0 0 auto}
+.rung.root{border-color:var(--cur);background:color-mix(in srgb,var(--cur) 12%,var(--card))}
+
+/* graph */
+.graphbox{overflow-x:auto}
+.graphbox svg{display:block;width:100%;min-width:520px;height:auto}
+.graphbox text{font-family:var(--mono);font-size:12px;fill:var(--muted)}
+.pt{cursor:pointer}
+.pt circle{fill:var(--card);stroke:var(--play);stroke-width:3;transition:r .15s,cy .6s}
+.pt:hover circle,.pt.on circle{r:10;fill:var(--play)}
+.pt:focus{outline:none}
+.pt:focus-visible circle{stroke:var(--cur)}
+.hidden-line .reveal{opacity:0}
+.reveal{transition:opacity .8s}
+.wknote{margin-top:14px;min-height:3.4em;font-size:17px}
+.wknote b{font-family:var(--mono);font-size:13px;color:var(--play);margin-right:8px}
+
+.gedit{display:none;margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+body.editing .gedit{display:block}
+body.editing .pt{cursor:ns-resize;touch-action:none}
+body.editing .pt circle{transition:r .15s}
+.grow{display:grid;grid-template-columns:52px 130px 64px minmax(0,1fr) auto;gap:8px;align-items:center;margin-bottom:8px}
+.grow input[type=range]{width:100%;accent-color:var(--play)}
+.grow input[type=number],.grow input[type=text]{font-family:var(--mono);font-size:13px;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);width:100%;min-width:0}
+.grow input.ph{background:color-mix(in srgb,var(--marker) 35%,var(--paper))}
+.lvlEdit{display:none}
+body.editing .lvlEdit{display:inline-block;margin-bottom:12px;background:var(--marker);color:#1A2140;border-color:var(--marker);font-weight:600}
+@media (max-width:760px){.grow{grid-template-columns:52px minmax(0,1fr) 64px auto}.grow input[type=text]{grid-column:1/-1}}
+
+/* pitch or pass */
+.scn{display:none}
+.scn.on{display:block;animation:pop .25s}
+.scn .q{font-family:var(--display);font-size:22px;font-weight:600;line-height:1.25;margin-bottom:16px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.opt{text-align:left;border:2px solid var(--line);background:var(--paper);border-radius:10px;padding:14px;cursor:pointer;font-size:16px;line-height:1.4}
+.opt:hover{border-color:var(--ink)}
+.opt .label{display:block;margin-bottom:6px}
+.opt.picked{border-color:var(--conf);background:color-mix(in srgb,var(--conf) 10%,var(--card))}
+.truth{margin-top:14px;padding:14px;border-radius:10px;background:var(--ink);color:var(--paper);font-size:16px}
+.truth .label{color:var(--marker);display:block;margin-bottom:4px}
+.dots{display:flex;gap:6px}
+.dots i{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.dots i.done{background:var(--conf)}
+
+/* flip cards */
+.flips{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.flip{perspective:900px;border:0;padding:0;background:none;cursor:pointer;text-align:left;min-height:220px}
+.flip .in{position:relative;width:100%;height:100%;min-height:220px;transition:transform .6s;transform-style:preserve-3d}
+.flip.on .in{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;padding:20px;display:flex;flex-direction:column;justify-content:space-between;border:1px solid var(--line)}
+.front{background:var(--card)}
+.back{background:var(--ink);color:var(--paper);transform:rotateY(180deg)}
+.back .label{color:var(--marker)}
+.face p{font-size:17px;margin:0}
+
+/* takes */
+.reel{display:flex;gap:16px;overflow-x:auto;padding:4px 4px 14px;scroll-snap-type:x mandatory}
+.take{flex:0 0 300px;scroll-snap-align:start;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;position:relative;display:flex;flex-direction:column;gap:10px}
+.take .stamp{position:absolute;top:16px;right:16px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;border:2px solid var(--play);color:var(--play);padding:2px 8px;border-radius:4px;transform:rotate(6deg)}
+.take h3{font-size:21px;padding-right:72px}
+.take p{font-size:16px;margin:0}
+.take .after{display:none;border-top:1px dashed var(--line);padding-top:10px}
+.take.won .after{display:block;animation:pop .25s}
+.take.won .stamp{border-color:var(--res);color:var(--res)}
+.take.won .btn{display:none}
+
+/* final */
+.final-cut{padding-block:72px;border-top:1px solid var(--line);position:relative}
+.lock{position:absolute;inset:0;z-index:5;display:grid;place-items:center;text-align:center;padding:24px;background:color-mix(in srgb,var(--paper) 82%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+body.editing .lock{display:none}
+.lock h3{font-size:clamp(28px,4vw,40px);margin-bottom:10px}
+.lock .need{font-family:var(--mono);font-size:13px;color:var(--muted);margin-bottom:18px}
+.lock .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.final-cut h2{font-size:clamp(36px,6vw,70px);font-weight:800}
+.endcard{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px}
+.endcard div{border-top:4px solid var(--line);padding-top:14px}
+.endcard div:nth-child(1){border-color:var(--cur)}.endcard div:nth-child(2){border-color:var(--conf)}.endcard div:nth-child(3){border-color:var(--res)}
+.trophies{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:36px}
+.trophy{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--card);opacity:.4;filter:grayscale(1)}
+.trophy.got{opacity:1;filter:none}
+.trophy .ic{font-size:22px}
+.trophy b{display:block;font-family:var(--display);font-size:15px;margin-top:4px}
+.trophy span{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:30}
+footer{padding-block:36px 64px;border-top:1px solid var(--line);color:var(--muted);font-size:15px}
+
+@media (max-width:760px){
+  body{font-size:17px}
+  .cols,.flips,.endcard,.how,.opts{grid-template-columns:1fr}
+  .chhead{grid-template-columns:1fr;gap:6px}
+  .chhead .lv{padding-top:0}
+  .lvl small{display:none}
+  .meters{order:3;flex-basis:100%}
+  .hero{padding-block:44px 36px}
+  .arena{height:340px}
+}
+</style>
+<script>window.ASSET_MAP={"a85b3d43e57ce142d0d16a2c2e655212": "files/ev1.png", "1d3905d84d8887d5303b609aaac2196b": "files/ev2.pdf"};</script>
+</head>
+<body>
+
+<!-- Saved edits live here. The Edit button rewrites this block; you never need to touch it by hand. -->
+<script type="application/json" id="content">{"text":{"hero_dek":"My job is coming up with ideas for YouTube channels, so I walked into this class thinking creativity was a who has the craziest ideas. This portfolio is a game too. Play through my seven weeks, fill all three mindset meters, and unlock the final cut.","l1_p1":"Every week I run ideation for a network of channels and pitch ideas for some of the biggest creators online. I'm used to being \"the ideas guy.\" So when Week 1 asked us what creativity is, my honest answer was \"Having the craziest ideas and most volume\"","l1_p2":"One part of class I remember vividly, was when we mentioned that the first few ideas wouldn't be the best and the deeper ideas take time","l1_pull":"Quantity was my comfort zone","l1_src":"Channel 4 News: Creativity - Assignment One","l2_p1":"Creators live and die by audience retention. Here's mine as a student: how bought in I was each week. Before I show you the line, guess which week I almost checked out.","l3_p1":"In ideation, I'm trained to ask \"will people click?\" and move on. Curiosity pushed me to stay with a problem and keep asking why before jumping to a fix.","l3_p2":"Researching and trying to find articles based on my assumption statement led me to dig deeper","l3_pull":"Curiosity and asking questions leads you to deeper thoughts","l3_src":"Curiosity - Assignment Two","l4_p2":"In this class I had to come up with an idea or a part of the idea for our Rube Goldberg assignment, many times my idea failed but I kept pitching ideas until it finally worked and we had something going on. After the start it began to get easier","fin_p2":"I look forward to failing and learning from each failure.","fin_cur":"I'll keep asking questions until it's boiled down into the purpose or 1 point","fin_conf":"I'll pitch any idea that comes to mind","fin_res":"No matter how tough it gets, nothing will be more frustrating than that Rube Goldberg assigment"},"img":{"ev1":"a85b3d43e57ce142d0d16a2c2e655212","ev2":{"id":"1d3905d84d8887d5303b609aaac2196b","type":"pdf","name":"Energy Drinks in The Gym (1) (1)"}},"weeks":[[60,"Honestly skeptical, thought I already knew how to be creative."],[53,"Felt a little out my comfort zone"],[60,"Got used to being out my comfort zone"],[72,"Became more intrigued in the class and started to implement it into my own work"],[55,"Rube Goldberg project went horrible but we finished it"],[12,"Bounced back and thought of that failure as learning"],[90,"Building this portfolio, expressing my creativity and thought"]],"scenes":[["Week 1. The professor asks for a wild idea out loud. Nobody's talking.","Stay quiet and wait for someone else.","Throw out the weird one first.","Raised my hand and said whatever came to mind, regardless if it was stupid"],["Your group picks a safe idea. You think there's a better, riskier one.","Go with the group. It's fine.","Pitch the risky one anyway.","Pick the riskier one for greater rewards"],["You have to present something you're not sure is good yet.","Polish it until it feels safe.","Present it rough and ask for feedback.","Present it and asked for feedback to make a greater final"]],"flips":[["A good idea is one that gets the most views.","A good idea is one that solves a real person's problem."],["Creative people are born that way.","Creativity is a set of habits you practice."],["Failing at an idea means it was a bad idea.","Failing is the fastest way to find the good version."]],"takes":[["What flopped","First assignment in 103","Felt frustrated not having examples or directions","Figured it out and played around with what I thought was right"],["What I doubted","Learning about failure","We always learned failure was bad","Failure always led to growth and not repeating those mistakes"],["What I'd redo","Be more ambitious and out there more","Take more risks","Get feedback instantly, be out there more, and have a strong final"],["What survived","Fail every chance","I pitch any idea that comes to mind, even if it's something dumb","In MBC w/ our client, I think of everything then niche it down into something to present"]]}</script>
+
+<div class="hud">
+  <div class="wrap">
+    <div class="lvl" id="lvl">Rookie<small>Level 0 of 3</small></div>
+    <div class="meters">
+      <div class="meter cur" id="m-cur"><div class="label"><span>Curiosity</span><span class="v">0</span></div><div class="bar"><i></i></div></div>
+      <div class="meter conf" id="m-conf"><div class="label"><span>Confidence</span><span class="v">0</span></div><div class="bar"><i></i></div></div>
+      <div class="meter res" id="m-res"><div class="label"><span>Resilience</span><span class="v">0</span></div><div class="bar"><i></i></div></div>
+    </div>
+    <div class="hudbtns">
+      <button class="chip" id="marks" aria-pressed="false">Hide edit marks</button>
+      <button class="chip primary" id="editBtn" hidden>✎ Edit page</button>
+    </div>
+  </div>
+  <div class="editbar" id="editbar" hidden>
+    <div class="wrap">
+      <p><b>Edit mode.</b> Click any outlined text to retype it. Click a photo box to upload. Yellow-highlighted text is still a placeholder.</p>
+      <button class="chip" id="gameBtn">Edit game content</button>
+      <button class="chip" id="cancelBtn">Cancel</button>
+      <button class="chip go" id="saveBtn">Save changes</button>
+      <span class="status" id="status" aria-live="polite"></span>
+    </div>
+  </div>
+  <div class="progress"><i id="prog"></i></div>
+</div>
+
+<aside class="drawer" id="drawer" aria-label="Game content editor">
+  <header><h3>Game content</h3><button class="chip" id="closeDrawer">Close</button></header>
+  <div class="body">
+    <div class="field"><label for="f-ideas">Level 1 · Idea storm notes</label><div class="hint">One idea per line. These are the sticky notes that pop up.</div><textarea id="f-ideas"></textarea></div>
+    <div class="field"><label for="f-weeks">Level 2 · Retention graph</label><div class="hint">One week per line: buy-in number (0–100) | what happened<br>Example: 45 | Honestly skeptical in week one.</div><textarea id="f-weeks"></textarea></div>
+    <div class="field"><label for="f-whys">Level 3 · Why ladder</label><div class="hint">One step per line. First line is the surface problem, last line is the root cause.</div><textarea id="f-whys"></textarea></div>
+    <div class="field"><label for="f-scenes">Level 4 · Pitch it or pass</label><div class="hint">One scenario per block, blank line between blocks. Each block is 4 lines:<br>1 the situation · 2 the safe choice · 3 the bold choice · 4 what you actually did</div><textarea id="f-scenes" style="min-height:240px"></textarea></div>
+    <div class="field"><label for="f-flips">Level 5 · Flip cards</label><div class="hint">One card per line: Week 1 belief | Week 7 belief</div><textarea id="f-flips"></textarea></div>
+    <div class="field"><label for="f-takes">Level 6 · Cutting room floor</label><div class="hint">One take per block, blank line between blocks. Each block is 4 lines:<br>1 small label · 2 title · 3 what flopped · 4 what you did next</div><textarea id="f-takes" style="min-height:260px"></textarea></div>
+  </div>
+  <footer><button class="btn" id="applyDrawer">Preview changes</button><span class="hint mono" style="align-self:center;color:var(--muted)">Then hit Save changes in the yellow bar.</span></footer>
+</aside>
+<input type="file" id="fileIn" accept="image/*,application/pdf,.pdf" hidden>
+<div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="PDF viewer">
+  <div class="vbar"><b id="vtitle">Document</b><div style="display:flex;gap:8px"><a class="chip" id="vopen" href="#" target="_blank" rel="noopener" style="text-decoration:none">Open in new tab</a><button class="chip" id="vclose">Close</button></div></div>
+  <div class="pages" id="vpages"></div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span class="ic" id="tic">🏆</span><div><b id="ttl">Achievement</b><span id="tsub">+0</span></div></div>
+<canvas class="confetti" id="confetti"></canvas>
+
+<header class="wrap hero" id="open">
+  <div class="label" data-k="hero_eyebrow">ESP 103 · Creative Mindsets Portfolio · Shayel Khatiwoda</div>
+  <h1>I pitch 100 ideas a week. <span class="strike">None of them</span> One of them is about me.</h1>
+  <p class="dek" data-k="hero_dek">My job is coming up with ideas for YouTube channels, so I walked into this class thinking creativity was a volume game. This portfolio is a game too. Play through my seven weeks, fill all three mindset meters, and unlock the final cut.</p>
+  <div class="how">
+    <div><b>Play each level</b><p>Every chapter has a mini-game built from something that actually happened in class.</p></div>
+    <div><b>Fill the meters</b><p>Curiosity, confidence, and resilience fill up as you play, the same way they did for me.</p></div>
+    <div><b>Unlock the ending</b><p>Fill all three to unlock the final cut. Grading in a hurry? There's a skip button.</p></div>
+  </div>
+</header>
+
+<!-- LEVEL 1 -->
+<section class="ch wrap" id="lv1">
+  <div class="chhead"><span class="lv">LEVEL 1 · WK 1</span><div><h2 data-k="l1_title">Cold open: the idea storm</h2></div></div>
+  <div class="cols">
+    <div class="game">
+      <div class="gtitle"><h3>Catch as many ideas as you can</h3><span class="reward">Reward: +Curiosity</span></div>
+      <div class="arena" id="arena">
+        <div class="center" id="arenaStart"><div><p style="margin:0 auto 14px">This is what my brain sounds like on a Monday. You have 12 seconds.</p><button class="btn" id="stormGo">Start the storm</button></div></div>
+      </div>
+      <div class="score"><span>Caught: <b id="caught">0</b></span><span>Time: <b id="clock">12.0</b>s</span></div>
+    </div>
+    <div>
+      <p data-k="l1_p1">Every week I run ideation for a network of kids' channels and pitch ideas for some of the biggest creators online. I'm used to being "the ideas guy." So when Week 1 asked us what creativity is, my honest answer was "Being fast. Having more ideas than everyone else."</p>
+      <p class="edit" data-k="l1_p2" data-ph>Describe the first class activity: what it was, what you expected, and the moment it felt weird or pointless. Admit it if you were skeptical.</p>
+      <div class="pull" data-k="l1_pull">Quantity was my comfort zone. I didn't know it was also my hiding spot.</div>
+      <div class="evid"><h3>Evidence · Week 1</h3><div class="slot" data-img="ev1">Week 1 reflection, a class photo, or your first-day definition of creativity</div><div class="src edit" data-k="l1_src" data-ph>Reading / lecture: name it</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- LEVEL 2 -->
+<section class="ch wrap" id="lv2">
+  <div class="chhead"><span class="lv">LEVEL 2 · WK 1–7</span><div><h2 data-k="l2_title">Guess my worst week</h2></div></div>
+  <p data-k="l2_p1">Creators live and die by audience retention. Here's mine as a student: how bought-in I was each week. Before I show you the line, guess which week I almost checked out.</p>
+  <div class="game">
+    <div class="gtitle"><h3 id="gq">Tap the week you think was my lowest</h3><span class="reward">Bonus achievement if you get it</span></div>
+    <div class="graphbox hidden-line" id="gbox"><svg id="graph" viewBox="0 0 720 300" role="img" aria-label="Line graph of buy-in across the weeks"></svg></div>
+    <div class="wknote" id="wknote" aria-live="polite"></div>
+    <div class="gedit" id="gedit"></div>
+  </div>
+</section>
+
+<!-- LEVEL 3 -->
+<section class="ch wrap" id="lv3">
+  <div class="chhead"><span class="lv">LEVEL 3 · WK 2–3</span><div><h2 data-k="l3_title">Ask the next question</h2><span class="mind m-cur">Curiosity</span></div></div>
+  <div class="cols">
+    <div>
+      <p class="edit" data-k="l3_p1" data-ph>In ideation, I'm trained to ask "will people click?" and move on. [Name the reading, lecture, or activity] pushed me to stay with a problem and keep asking why before jumping to a fix.</p>
+      <p class="edit" data-k="l3_p2" data-ph>Tell the story of a mini project or out-of-class challenge where you got curious about something you'd normally ignore. Be specific: names, places, numbers.</p>
+      <div class="pull edit" data-k="l3_pull" data-ph>Your one-line takeaway about curiosity.</div>
+      <div class="evid"><h3>Evidence · Curiosity</h3><div class="slot" data-img="ev2">Notes, photos, or a screenshot from the mini project</div><div class="src edit" data-k="l3_src" data-ph>Course concept connected</div></div>
+    </div>
+    <div class="game">
+      <div class="gtitle"><h3>Dig to the root</h3><span class="reward">Reward: +Curiosity</span></div>
+      <p style="font-size:16px;color:var(--muted)">Start with the surface problem. Keep asking "why?" until you hit the real one.</p>
+      <div class="ladder" id="ladder"></div>
+      <div style="margin-top:14px"><button class="btn" id="why">Why?</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- LEVEL 4 -->
+<section class="ch wrap" id="lv4">
+  <div class="chhead"><span class="lv">LEVEL 4 · WK 4–5</span><div><h2 data-k="l4_title">Pitch it or pass</h2><span class="mind m-conf">Confidence</span></div></div>
+  <div class="cols">
+    <div class="game">
+      <div class="gtitle"><h3>What would you do?</h3><div class="dots" id="dots"></div></div>
+      <div id="scenes"></div>
+    </div>
+    <div>
+      <p data-k="l4_p1">Pitching ideas for someone else's channel is easy. If it flops, it's their call. Standing behind an idea that's mine is different.</p>
+      <p class="edit" data-k="l4_p2" data-ph>Describe the moment in class (or the mini case competition, if it was part of this course) where you had to own an idea in front of people. What were you nervous about? What did you do anyway? If your group won first place, say what you specifically contributed.</p>
+      <div class="pull" data-k="l4_pull">Confidence isn't knowing the idea will work. It's being willing to find out out loud.</div>
+      <div class="evid"><h3>Evidence · Confidence</h3><div class="slot" data-img="ev3">A pitch slide, group photo, or results</div><div class="src edit" data-k="l4_src" data-ph>Course concept connected</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- LEVEL 5 -->
+<section class="ch wrap" id="lv5">
+  <div class="chhead"><span class="lv">LEVEL 5 · A/B TEST</span><div><h2 data-k="l5_title">Week 1 me vs. Week 7 me</h2></div></div>
+  <p data-k="l5_p1">Flip the cards to see what changed. Flip them all for a bonus.</p>
+  <div class="flips" id="flips"></div>
+</section>
+
+<!-- LEVEL 6 -->
+<section class="ch wrap" id="lv6">
+  <div class="chhead"><span class="lv">LEVEL 6 · WK 5–6</span><div><h2 data-k="l6_title">The cutting room floor</h2><span class="mind m-res">Resilience</span></div></div>
+  <p data-k="l6_p1">Every video has takes that didn't work. These are mine. Each one is marked CUT. Call "Take 2" to see what I did next. Swipe for more.</p>
+  <div class="reel" id="reel"></div>
+</section>
+
+<!-- FINAL -->
+<section class="final-cut" id="final">
+  <div class="lock" id="lock">
+    <div>
+      <div class="label">Final level locked</div>
+      <h3>Fill all three meters to unlock the final cut</h3>
+      <div class="need" id="need">Curiosity 0/100 · Confidence 0/100 · Resilience 0/100</div>
+      <div class="row"><a class="btn ghost" href="#lv1">Back to Level 1</a><button class="btn" id="skip">Skip to the ending</button></div>
+    </div>
+  </div>
+  <div class="wrap">
+    <span class="label">FINAL CUT · WK 7</span>
+    <h2 style="margin-top:12px" data-k="fin_title">Who I'm becoming</h2>
+    <p style="margin-top:24px" data-k="fin_p1">I still pitch a hundred ideas a week. The difference is that now I know which mindset I'm using when I do it, and which one I'm avoiding.</p>
+    <p class="edit" data-k="fin_p2" data-ph>Close the story: who you are now as a learner, an innovator, and someone preparing to lead, and what you're carrying into the client challenge.</p>
+    <div class="endcard">
+      <div><span class="label">Curiosity, now</span><p class="edit" data-k="fin_cur" data-ph>One sentence on how you'll use it next.</p></div>
+      <div><span class="label">Confidence, now</span><p class="edit" data-k="fin_conf" data-ph>One sentence on how you'll use it next.</p></div>
+      <div><span class="label">Resilience, now</span><p class="edit" data-k="fin_res" data-ph>One sentence on how you'll use it next.</p></div>
+    </div>
+    <div class="label" style="margin-top:40px">Your achievements</div>
+    <div class="trophies" id="trophies"></div>
+  </div>
+</section>
+
+<footer class="wrap">
+  <p data-k="footer">AI use: I used Claude to help draft the structure and code of this website. The stories, reflections, and evidence are mine. Documented in the ESP 103 AI Usage Document.</p>
+</footer>
+
+<script>
+(function(){
+// Snapshot of the untouched page, used to rebuild it when you save.
+const PRISTINE=document.body.innerHTML;
+
+/* ---------- default game content (edit in the page with ✎ Edit page) ---------- */
+const DEFAULTS={
+  ideas:["Last to leave the circle wins","I built a city out of cardboard","24 hours in a giant ball pit","Every kid's homework, but backwards","Hide and seek in a mall","Teaching my cat to do my job","World's biggest paper airplane","Trading a paperclip for a car","Surviving on $1 for a week","Guess the price, win the item","Saying yes to everything for a day","Building a fort in 60 seconds","Who can stay awake the longest","Ranking every cereal ever","Turning my room into an arcade"],
+  weeks:[[45,"Honestly skeptical. Thought I already knew how to be creative. (edit me)"],[30,"The dip. An activity felt pointless and I phoned it in. (edit me)"],[60,"Something clicked. Name the reading or moment. (edit me)"],[72,"Pitched my own idea and it landed. (edit me)"],[55,"A mini project flopped. (edit me)"],[80,"Bounced back and tried again differently. (edit me)"],[90,"Building this portfolio. Fully bought in. (edit me)"]],
+  whys:["Our group project felt stuck. (edit me)","Nobody knew who was doing what. (edit me)","We never actually talked about roles. (edit me)","Everyone assumed someone else would lead. (edit me)","Nobody felt confident enough to go first. (edit me)","The problem wasn't the project. It was the mindset. (edit me)"],
+  scenes:[
+    ["Week 1. The professor asks for a wild idea out loud. Nobody's talking.","Stay quiet and wait for someone else.","Throw out the weird one first.","What you actually did, and how it felt. (edit me)"],
+    ["Your group picks a safe idea. You think there's a better, riskier one.","Go with the group. It's fine.","Pitch the risky one anyway.","What you did and what happened. (edit me)"],
+    ["You have to present something you're not sure is good yet.","Polish it until it feels safe.","Present it rough and ask for feedback.","What you did and what you learned. (edit me)"]],
+  flips:[["A good idea is one that gets the most views.","A good idea is one that solves a real person's problem. (edit me)"],["Creative people are born that way.","Creativity is a set of habits you practice. (edit me)"],["Failing at an idea means it was a bad idea.","Failing is the fastest way to find the good version. (edit me)"]],
+  takes:[
+    ["What flopped","An assignment that didn't click (edit me)","What happened and how it felt. (edit me)","How you adjusted or tried again. (edit me)"],
+    ["What I doubted","The activity I thought was pointless (edit me)","Why you questioned it. (edit me)","The moment it changed your mind, or why it still didn't. (edit me)"],
+    ["What I'd redo","The thing I'd do differently (edit me)","What you'd change now. (edit me)","What you'll do differently in the client challenge. (edit me)"],
+    ["What survived","The habit I'm keeping (edit me)","One practice from this class you use outside of it. (edit me)","Where you use it: at work, in MBC, anywhere. Give a real example. (edit me)"]]
+};
+
+let SAVED={};try{SAVED=JSON.parse(document.getElementById('content').textContent||'{}')}catch(e){SAVED={}}
+const C={text:Object.assign({},SAVED.text||{}),img:Object.assign({},SAVED.img||{})};
+['ideas','weeks','whys','scenes','flips','takes'].forEach(k=>C[k]=SAVED[k]||DEFAULTS[k]);
+
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const PH=/\s*\(edit me\)\s*/i;
+// text with "(edit me)" shows highlighted as a placeholder
+const T=s=>{const p=PH.test(s);return `<span class="${p?'edit':''}">${esc(String(s).replace(PH,' ').trim())}</span>`};
+
+/* ---------- prose + photos ---------- */
+const DEF={};$$('[data-k]').forEach(el=>DEF[el.dataset.k]=el.textContent);
+function renderText(){
+  $$('[data-k]').forEach(el=>{const k=el.dataset.k;const v=C.text[k];el.textContent=v!=null?v:DEF[k];if(el.hasAttribute('data-ph'))el.classList.toggle('edit',v==null)});
+}
+const SLOT={};$$('[data-img]').forEach(s=>SLOT[s.dataset.img]=s.textContent);
+// a slot holds either an old-style id string (photo) or {id,type,name}
+// on shayel.world the files are copied next to the page; window.ASSET_MAP points to them
+const blobUrl=id=>(window.ASSET_MAP&&window.ASSET_MAP[id])||'/_blob/'+id;
+const fileOf=v=>!v?null:typeof v==='string'?{id:v,type:'image',name:''}:v;
+let pdfLib=null;
+function loadPdfJs(){
+  if(pdfLib)return pdfLib;
+  const add=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)});
+  const base='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+  // the worker script runs on the main thread (no cross-origin Worker needed)
+  pdfLib=add(base+'pdf.min.js').then(()=>add(base+'pdf.worker.min.js')).then(()=>{const L=window.pdfjsLib;L.GlobalWorkerOptions.workerSrc=base+'pdf.worker.min.js';return L});
+  pdfLib.catch(()=>{pdfLib=null});return pdfLib;
+}
+async function openPdf(url){const L=await loadPdfJs();return L.getDocument({url,isEvalSupported:false}).promise}
+async function drawPage(doc,n,width){const p=await doc.getPage(n);const v1=p.getViewport({scale:1});const sc=(width*(devicePixelRatio||1))/v1.width;const vp=p.getViewport({scale:sc});const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;await p.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;return c}
+function renderImgs(){
+  $$('[data-img]').forEach(s=>{const f=fileOf(C.img[s.dataset.img]);
+    if(!f){s.classList.remove('has-img');s.textContent=SLOT[s.dataset.img];return}
+    s.classList.add('has-img');s.innerHTML='';const url=blobUrl(f.id);
+    if(f.type!=='pdf'){const im=new Image();im.alt='Evidence photo';im.src=url;s.appendChild(im);return}
+    const card=document.createElement('div');card.className='pdfcard';
+    card.innerHTML=`<button type="button" class="thumb" aria-label="Preview ${esc(f.name||'PDF')}"><span class="mono">Loading preview…</span></button><div class="meta"><b><span class="badge">PDF</span>${esc(f.name||'Document')}</b><a href="${url}" target="_blank" rel="noopener">Open full PDF ↗</a></div>`;
+    const thumb=card.querySelector('.thumb');
+    thumb.addEventListener('click',e=>{if(editing)return;e.stopPropagation();showViewer(f)});
+    card.querySelector('a').addEventListener('click',e=>{if(editing)e.preventDefault();else e.stopPropagation()});
+    s.appendChild(card);
+    openPdf(url).then(async doc=>{const c=await drawPage(doc,1,Math.max(260,thumb.clientWidth||300));thumb.innerHTML='';thumb.appendChild(c);
+      if(doc.numPages>1){const b=card.querySelector('.meta b');b.insertAdjacentHTML('beforeend',` <span class="mono" style="color:var(--muted);font-weight:400">· ${doc.numPages} pages</span>`)}})
+      .catch(()=>{thumb.innerHTML='<span class="mono">Preview unavailable. Use Open full PDF.</span>'});
+  });
+}
+async function showViewer(f){
+  const V=$('#viewer'),P=$('#vpages'),url=blobUrl(f.id);$('#vtitle').textContent=f.name||'Document';$('#vopen').href=url;
+  P.innerHTML='<p class="mono">Loading…</p>';V.hidden=false;document.body.style.overflow='hidden';$('#vclose').focus();
+  try{const doc=await openPdf(url);P.innerHTML='';const w=Math.min(900,P.clientWidth-32);for(let i=1;i<=doc.numPages;i++){if(V.hidden)break;P.appendChild(await drawPage(doc,i,w))}}
+  catch(_){P.innerHTML='<p class="mono">This PDF can’t be previewed here. Use Open in new tab.</p>'}
+}
+function closeViewer(){$('#viewer').hidden=true;document.body.style.overflow=''}
+$('#vclose').addEventListener('click',closeViewer);
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#viewer').hidden)closeViewer()});
+
+/* ---------- meters + achievements ---------- */
+const S={cur:0,conf:0,res:0};
+const TROPHIES={storm:{ic:"⚡",t:"Ideas Guy",d:"Survived the idea storm"},me:{ic:"🎯",t:"Found the One",d:"Caught the idea about me"},guess:{ic:"🔮",t:"Mind Reader",d:"Guessed my worst week"},root:{ic:"🔍",t:"Root Cause",d:"Asked why all the way down"},bold:{ic:"🔥",t:"Risk Taker",d:"Picked the bold option every time"},flips:{ic:"🔄",t:"Changed Mind",d:"Flipped every card"},takes:{ic:"🎬",t:"Take Two",d:"Recovered every cut take"},final:{ic:"🏆",t:"Final Cut",d:"Unlocked the ending"}};
+const got=new Set();let tq=[],tbusy=false;
+function toast(ic,t,sub){tq.push([ic,t,sub]);if(!tbusy)nextToast()}
+function nextToast(){const x=tq.shift();if(!x){tbusy=false;return}tbusy=true;$('#tic').textContent=x[0];$('#ttl').textContent=x[1];$('#tsub').textContent=x[2];const el=$('#toast');el.classList.add('show');setTimeout(()=>{el.classList.remove('show');setTimeout(nextToast,350)},2200)}
+function award(k){if(got.has(k)||editing)return;got.add(k);const a=TROPHIES[k];toast(a.ic,a.t,a.d);renderTrophies()}
+function renderTrophies(){$('#trophies').innerHTML=Object.entries(TROPHIES).map(([k,a])=>`<div class="trophy ${got.has(k)?'got':''}"><div class="ic">${a.ic}</div><b>${a.t}</b><span>${a.d}</span></div>`).join('')}
+const NAMES={cur:"Curiosity",conf:"Confidence",res:"Resilience"};
+function add(k,n){if(editing)return;const b=S[k];S[k]=Math.min(100,S[k]+n);if(S[k]===b)return;const m=$('#m-'+k);m.querySelector('i').style.width=S[k]+'%';m.querySelector('.v').textContent=Math.round(S[k]);if(S[k]===100&&b<100){m.classList.add('full');toast('⭐',NAMES[k]+' maxed','Meter full')}update()}
+const LEVELS=["Rookie","Ideas Guy","Creator","Director"];
+function update(){const full=['cur','conf','res'].filter(k=>S[k]>=100).length;$('#lvl').innerHTML=LEVELS[full]+'<small>Level '+full+' of 3</small>';$('#need').textContent=`Curiosity ${Math.round(S.cur)}/100 · Confidence ${Math.round(S.conf)}/100 · Resilience ${Math.round(S.res)}/100`;if(full===3)unlock(true)}
+let unlocked=false;function unlock(e){if(unlocked)return;unlocked=true;$('#lock').hidden=true;if(e){award('final');confetti()}}
+$('#skip').addEventListener('click',()=>{unlock(false);$('#final').scrollIntoView()});
+
+/* ---------- Level 1: idea storm ---------- */
+$('#stormGo').addEventListener('click',startStorm);
+let stormTimers=[];
+function startStorm(){
+  const A=$('#arena');A.querySelectorAll('.idea').forEach(e=>e.remove());$('#arenaStart').hidden=true;
+  let caught=0,left=12,meShown=false;$('#caught').textContent=0;
+  const spawn=me=>{const b=document.createElement('button');b.type='button';b.className='idea'+(me?' me':'');
+    b.textContent=me?"An idea about me":C.ideas[Math.floor(Math.random()*C.ideas.length)]||"An idea";
+    b.style.left=Math.random()*Math.max(10,A.clientWidth-200)+'px';b.style.top=Math.random()*Math.max(10,A.clientHeight-70)+'px';
+    b.addEventListener('click',()=>{b.classList.add('gone');setTimeout(()=>b.remove(),200);if(me){award('me');add('cur',15);end(true)}else{caught++;$('#caught').textContent=caught}});
+    A.appendChild(b);if(!me)setTimeout(()=>{b.classList.add('gone');setTimeout(()=>b.remove(),200)},1500)};
+  const sp=setInterval(()=>spawn(false),380);
+  const ck=setInterval(()=>{left-=.1;$('#clock').textContent=Math.max(0,left).toFixed(1);if(left<=3&&!meShown){meShown=true;spawn(true)}if(left<=0)end(false)},100);
+  stormTimers=[sp,ck];
+  function end(found){stormTimers.forEach(clearInterval);A.querySelectorAll('.idea').forEach(e=>e.remove());const c=$('#arenaStart');c.hidden=false;
+    c.innerHTML=`<div><p style="margin:0 auto 6px;font-family:var(--display);font-size:24px;font-weight:800">${caught} ideas caught.</p><p style="margin:0 auto 14px;max-width:44ch">${found?"You found the one idea that was actually about me. That's what this class asked me to do.":"Lots of ideas, and none of them were mine. That was me in Week 1."}</p><button class="btn" id="stormAgain">${found?'Play again':'Try again: find the red one'}</button></div>`;
+    $('#stormAgain').addEventListener('click',startStorm);award('storm');add('cur',25)}
+}
+
+/* ---------- Level 2: guess graph ---------- */
+const NS='http://www.w3.org/2000/svg';const el=(n,a)=>{const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);return e};
+let G={redraw(){},pick(){}};
+function buildGraph(){
+  const svg=$('#graph');svg.innerHTML='';const W=C.weeks,ed=editing;
+  if(!W.length){$('#wknote').textContent=ed?'Add a week below to start the graph.':'';G={redraw(){},pick(){}};return}
+  $('#gbox').classList.toggle('hidden-line',!ed);
+  $('#gq').textContent=ed?'Drag a dot up or down, or use the boxes below':'Tap the week you think was my lowest';
+  $('#wknote').textContent=ed?'':'The line is hidden until you guess.';
+  const L=56,R=696,T0=24,B=256,n=W.length,x=i=>n>1?L+i*(R-L)/(n-1):(L+R)/2,y=v=>B-(Math.max(0,Math.min(100,v))/100)*(B-T0);
+  [0,25,50,75,100].forEach(v=>{svg.appendChild(el('line',{x1:L,x2:R,y1:y(v),y2:y(v),stroke:'var(--line)','stroke-width':1}));const t=el('text',{x:L-12,y:y(v)+4,'text-anchor':'end'});t.textContent=v+'%';svg.appendChild(t)});
+  const area=el('path',{class:'reveal',fill:'var(--play)','fill-opacity':.12}),line=el('path',{class:'reveal',fill:'none',stroke:'var(--play)','stroke-width':3,'stroke-linejoin':'round'});
+  svg.appendChild(area);svg.appendChild(line);
+  let revealed=ed;const gs=[];
+  const pts=()=>W.map((w,i)=>[x(i),y(w[0])]);
+  function redraw(){const p=pts(),d=p.map((q,i)=>(i?'L':'M')+q[0]+' '+q[1]).join(' ');line.setAttribute('d',d);area.setAttribute('d',d+` L${p[n-1][0]} ${B} L${p[0][0]} ${B} Z`);if(revealed)gs.forEach((g,j)=>g.querySelector('circle').setAttribute('cy',p[j][1]))}
+  const pick=i=>{gs.forEach((g,j)=>g.classList.toggle('on',i===j));$('#wknote').innerHTML=`<b>WK ${i+1} · ${W[i][0]}% retained</b>`+T(W[i][1])};
+  const guess=i=>{revealed=true;$('#gbox').classList.remove('hidden-line');redraw();const low=W.reduce((m,w,k)=>w[0]<W[m][0]?k:m,0),ok=i===low;$('#gq').textContent=ok?'You got it. Now tap any week for the story.':`Close. It was Week ${low+1}. Tap any week for the story.`;if(ok)award('guess');add('res',10);pick(low)};
+  W.forEach((w,i)=>{const g=el('g',{class:'pt',tabindex:0,role:'button','aria-label':'Week '+(i+1)});g.appendChild(el('circle',{cx:x(i),cy:B-60,r:7}));const lb=el('text',{x:x(i),y:B+26,'text-anchor':'middle'});lb.textContent='WK '+(i+1);g.appendChild(lb);
+    const go=()=>revealed?pick(i):guess(i);g.addEventListener('click',go);
+    g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}
+      if(editing&&(e.key==='ArrowUp'||e.key==='ArrowDown')){e.preventDefault();W[i][0]=Math.max(0,Math.min(100,W[i][0]+(e.key==='ArrowUp'?5:-5)));redraw();syncRow(i);pick(i)}});
+    // drag a dot to change that week's number (edit mode only)
+    g.addEventListener('pointerdown',e=>{if(!editing)return;e.preventDefault();g.setPointerCapture(e.pointerId);pick(i);
+      const mv=ev=>{const pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;const sp=pt.matrixTransform(svg.getScreenCTM().inverse());W[i][0]=Math.round(Math.max(0,Math.min(100,(B-sp.y)/(B-T0)*100)));redraw();syncRow(i);pick(i)};
+      const up=()=>{g.removeEventListener('pointermove',mv);g.removeEventListener('pointerup',up);g.removeEventListener('pointercancel',up)};
+      g.addEventListener('pointermove',mv);g.addEventListener('pointerup',up);g.addEventListener('pointercancel',up)});
+    svg.appendChild(g);gs.push(g)});
+  redraw();G={redraw,pick};
+}
+function syncRow(i){const r=$('#gedit .grow[data-i="'+i+'"]');if(!r)return;const v=C.weeks[i][0];r.querySelector('input[type=range]').value=v;r.querySelector('input[type=number]').value=v}
+function renderGEdit(){
+  const box=$('#gedit');if(!editing){box.innerHTML='';return}
+  box.innerHTML='<div class="label" style="margin-bottom:10px">Edit the weeks · drag the slider or type a number from 0 to 100</div>'+C.weeks.map((w,i)=>{const ph=PH.test(w[1]);return `<div class="grow" data-i="${i}"><span class="label">WK ${i+1}</span><input type="range" id="wk-r-${i}" min="0" max="100" value="${w[0]}" aria-label="Week ${i+1} buy-in"><input type="number" id="wk-n-${i}" min="0" max="100" value="${w[0]}" aria-label="Week ${i+1} buy-in number"><input type="text" id="wk-t-${i}" class="${ph?'ph':''}" value="${esc(String(w[1]).replace(PH,' ').trim())}" placeholder="What happened this week?" aria-label="Week ${i+1} story"><button type="button" class="chip del" aria-label="Remove week ${i+1}">✕</button></div>`}).join('')+'<button type="button" class="chip" id="addWeek">+ Add week</button>';
+  box.querySelectorAll('.grow').forEach(r=>{const i=+r.dataset.i,w=C.weeks[i],[rg,nm,tx]=r.querySelectorAll('input');
+    rg.addEventListener('input',()=>{w[0]=+rg.value;nm.value=rg.value;G.redraw();G.pick(i)});
+    nm.addEventListener('input',()=>{const v=Math.max(0,Math.min(100,parseFloat(nm.value)||0));w[0]=v;rg.value=v;G.redraw();G.pick(i)});
+    tx.addEventListener('input',()=>{w[1]=tx.value;tx.classList.remove('ph');G.pick(i)});
+    tx.addEventListener('focus',()=>G.pick(i));
+    r.querySelector('.del').addEventListener('click',()=>{C.weeks.splice(i,1);buildGraph();renderGEdit()})});
+  $('#addWeek').addEventListener('click',()=>{C.weeks.push([50,'What happened this week? (edit me)']);buildGraph();renderGEdit();const t=$('#wk-t-'+(C.weeks.length-1));if(t)t.focus()});
+}
+
+/* ---------- Level 3: why ladder ---------- */
+let wi=0;const whyBtn=$('#why');
+function rung(i){const n=C.whys.length,r=document.createElement('div');r.className='rung'+(i===n-1?' root':'');r.innerHTML=`<span class="n">${i===0?'START':i===n-1?'ROOT':'WHY '+i}</span>`+T(C.whys[i]);$('#ladder').appendChild(r)}
+function buildWhys(){$('#ladder').innerHTML='';wi=0;whyBtn.disabled=C.whys.length<2;whyBtn.textContent='Why?';if(C.whys.length)rung(0)}
+whyBtn.addEventListener('click',()=>{const n=C.whys.length;if(wi>=n-1)return;wi++;rung(wi);add('cur',60/(n-1));if(wi>=n-1){whyBtn.disabled=true;whyBtn.textContent='Root found';award('root')}});
+
+/* ---------- Level 4: pitch or pass ---------- */
+function buildScenes(){
+  const sc=$('#scenes'),S4=C.scenes,n=S4.length;sc.innerHTML='';$('#dots').innerHTML=S4.map(()=>'<i></i>').join('');let bold=0,done=0;
+  S4.forEach((s,i)=>{const d=document.createElement('div');d.className='scn'+(i===0?' on':'');
+    d.innerHTML=`<div class="label">Scenario ${i+1} of ${n}</div><div class="q">${T(s[0]||'')}</div><div class="opts"><button class="opt" data-c="a"><span class="label">Pass</span>${T(s[1]||'')}</button><button class="opt" data-c="b"><span class="label">Pitch it</span>${T(s[2]||'')}</button></div><div class="truth" hidden><span class="label">What I actually did</span>${T(s[3]||'')}<div style="margin-top:12px"><button class="btn ghost nx" style="color:var(--paper);border-color:var(--paper)">${i<n-1?'Next scenario →':'Finish'}</button></div></div>`;
+    d.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',()=>{if(d.dataset.done)return;d.dataset.done=1;o.classList.add('picked');const b=o.dataset.c==='b';if(b)bold++;add('conf',(b?100:75)/n);done++;$$('#dots i')[i].classList.add('done');d.querySelector('.truth').hidden=false;if(done===n){if(bold===n)award('bold');else add('conf',25)}}));
+    d.querySelector('.nx').addEventListener('click',()=>{const nx=sc.children[i+1];if(nx){d.classList.remove('on');nx.classList.add('on')}else d.querySelector('.nx').hidden=true});
+    sc.appendChild(d)});
+}
+
+/* ---------- Level 5: flips ---------- */
+function buildFlips(){
+  const F=C.flips,box=$('#flips'),seen=new Set();box.innerHTML='';
+  F.forEach((f,i)=>{const b=document.createElement('button');b.type='button';b.className='flip';b.setAttribute('aria-pressed','false');
+    b.innerHTML=`<div class="in"><div class="face front"><span class="label">Week 1 belief</span><p>${T(f[0]||'')}</p><span class="mono">tap to flip →</span></div><div class="face back"><span class="label">Week 7 belief</span><p>${T(f[1]||'')}</p><span class="mono">← tap</span></div></div>`;
+    b.addEventListener('click',()=>{const on=b.classList.toggle('on');b.setAttribute('aria-pressed',on);if(!seen.has(i)){seen.add(i);const g=12/F.length;add('cur',g);add('conf',g);add('res',g);if(seen.size===F.length)award('flips')}});box.appendChild(b)});
+}
+
+/* ---------- Level 6: takes ---------- */
+function buildTakes(){
+  const K=C.takes,box=$('#reel');box.innerHTML='';let won=0;
+  K.forEach(t=>{const a=document.createElement('article');a.className='take';
+    a.innerHTML=`<span class="stamp">CUT</span><span class="label">${esc((t[0]||'').replace(PH,''))}</span><h3>${T(t[1]||'')}</h3><p>${T(t[2]||'')}</p><button class="btn ghost">Take 2 →</button><div class="after"><span class="label">What I did next</span><p>${T(t[3]||'')}</p></div>`;
+    a.querySelector('.btn').addEventListener('click',()=>{a.classList.add('won');a.querySelector('.stamp').textContent='TAKE 2';won++;add('res',100/K.length);if(won===K.length)award('takes')});box.appendChild(a)});
+}
+
+function buildGames(){buildGraph();buildWhys();buildScenes();buildFlips();buildTakes()}
+
+/* ---------- misc ---------- */
+const mb=$('#marks');mb.addEventListener('click',()=>{const f=document.body.classList.toggle('final');mb.textContent=f?'Show edit marks':'Hide edit marks';mb.setAttribute('aria-pressed',f)});
+const prog=$('#prog');const tick=()=>{const m=document.documentElement.scrollHeight-innerHeight||1;prog.style.width=Math.min(100,scrollY/m*100)+'%'};addEventListener('scroll',tick,{passive:true});
+function confetti(){if(reduce)return;const c=$('#confetti'),g=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;const cs=getComputedStyle(document.documentElement);const cols=['--marker','--play','--cur','--res'].map(v=>cs.getPropertyValue(v).trim());const P=Array.from({length:140},()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height*.5,vx:(Math.random()-.5)*4,vy:2+Math.random()*4,r:Math.random()*6,s:4+Math.random()*6,c:cols[Math.floor(Math.random()*4)]}));let f=0;(function loop(){g.clearRect(0,0,c.width,c.height);P.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.05;p.r+=.1;g.save();g.translate(p.x,p.y);g.rotate(p.r);g.fillStyle=p.c;g.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);g.restore()});if(++f<220)requestAnimationFrame(loop);else g.clearRect(0,0,c.width,c.height)})()}
+
+/* ================= EDIT MODE ================= */
+let editing=false,artifactNS=null,assetsNS=null,snapshot=null,imgKey=null;
+const status=t=>$('#status').textContent=t;
+// textarea <-> data
+const toLines=a=>a.join('\n'),fromLines=s=>s.split('\n').map(x=>x.trim()).filter(Boolean);
+const toPipes=a=>a.map(r=>r.join(' | ')).join('\n'),fromPipes=s=>fromLines(s).map(l=>l.split('|').map(x=>x.trim()));
+const toBlocks=a=>a.map(r=>r.join('\n')).join('\n\n'),fromBlocks=s=>s.split(/\n\s*\n/).map(b=>b.split('\n').map(x=>x.trim()).filter(Boolean)).filter(b=>b.length);
+function fillDrawer(){$('#f-ideas').value=toLines(C.ideas);$('#f-weeks').value=C.weeks.map(w=>w[0]+' | '+w[1]).join('\n');$('#f-whys').value=toLines(C.whys);$('#f-scenes').value=toBlocks(C.scenes);$('#f-flips').value=toPipes(C.flips);$('#f-takes').value=toBlocks(C.takes)}
+function readDrawer(){
+  C.ideas=fromLines($('#f-ideas').value);
+  C.weeks=fromPipes($('#f-weeks').value).map(r=>[Math.max(0,Math.min(100,parseFloat(r[0])||0)),r.slice(1).join(' | ')]);
+  C.whys=fromLines($('#f-whys').value);C.scenes=fromBlocks($('#f-scenes').value);
+  C.flips=fromPipes($('#f-flips').value);C.takes=fromBlocks($('#f-takes').value);
+}
+function setEditing(on){
+  editing=on;document.body.classList.toggle('editing',on);$('#editbar').hidden=!on;$('#editBtn').hidden=on||!artifactNS;
+  $$('[data-k]').forEach(e=>{if(on){try{e.contentEditable='plaintext-only'}catch(_){e.contentEditable='true'}if(e.contentEditable!=='plaintext-only')e.contentEditable='true'}else e.removeAttribute('contenteditable')});
+  if(!on)$('#drawer').classList.remove('open');
+  buildGraph();renderGEdit();
+}
+$$('[data-k]').forEach(e=>{e.addEventListener('paste',ev=>{if(!editing)return;ev.preventDefault();document.execCommand('insertText',false,(ev.clipboardData||window.clipboardData).getData('text'))});
+  e.addEventListener('keydown',ev=>{if(editing&&ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();e.blur()}});
+  e.addEventListener('input',()=>{if(editing&&e.hasAttribute('data-ph'))e.classList.remove('edit')})});
+$('#editBtn').addEventListener('click',()=>{snapshot=JSON.stringify(C);setEditing(true);status('')});
+$('#cancelBtn').addEventListener('click',()=>{const s=JSON.parse(snapshot);Object.assign(C,s);setEditing(false);renderText();renderImgs();buildGames()});
+$('#gameBtn').addEventListener('click',()=>{fillDrawer();$('#drawer').classList.add('open');$('#f-ideas').focus()});
+$('#closeDrawer').addEventListener('click',()=>$('#drawer').classList.remove('open'));
+$('#applyDrawer').addEventListener('click',()=>{readDrawer();buildGames();renderGEdit();$('#drawer').classList.remove('open');status('Previewing. Hit Save changes to keep it.')});
+// photo slots
+$$('[data-img]').forEach(s=>s.addEventListener('click',()=>{if(!editing)return;if(!assetsNS){status('Photo upload is not available here.');return}imgKey=s.dataset.img;$('#fileIn').value='';$('#fileIn').click()}));
+$('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];if(!f||!imgKey)return;const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);
+  if(!isPdf&&!/^image\//.test(f.type)){status('Pick an image or a PDF.');return}
+  if(f.size>20*1024*1024){status('That file is over 20 MB. Try compressing it first.');return}
+  status(isPdf?'Uploading PDF…':'Uploading photo…');
+  try{const blob=isPdf&&f.type!=='application/pdf'?new Blob([f],{type:'application/pdf'}):f;const r=await assetsNS.upload(blob);
+    C.img[imgKey]={id:r.id,type:isPdf?'pdf':'image',name:f.name.replace(/\.[^.]+$/,'')};renderImgs();status((isPdf?'PDF':'Photo')+' added. Hit Save changes to keep it.')}
+  catch(err){status('Upload failed: '+(err&&err.message||'try a smaller file'))}});
+function collectText(){$$('[data-k]').forEach(e=>{const k=e.dataset.k,v=e.textContent.replace(/\s+/g,' ').trim();if(v&&v!==DEF[k].replace(/\s+/g,' ').trim())C.text[k]=v;else delete C.text[k]})}
+$('#saveBtn').addEventListener('click',async()=>{
+  if($('#drawer').classList.contains('open'))readDrawer();
+  collectText();const out={text:C.text,img:C.img};['ideas','weeks','whys','scenes','flips','takes'].forEach(k=>{if(JSON.stringify(C[k])!==JSON.stringify(DEFAULTS[k]))out[k]=C[k]});
+  const json=JSON.stringify(out).replace(/</g,'\\u003c');
+  const bodyHtml=PRISTINE.replace(/(<script type="application\/json" id="content">)[\s\S]*?(<\/script>)/,(_,a,b)=>a+json+b);
+  const reset=(document.head.querySelector('style')||{}).textContent||'';
+  const doc='<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>'+reset+'</style></head><body>'+bodyHtml+'</body></html>';
+  $('#saveBtn').disabled=true;status('Saving…');
+  try{await artifactNS.publish(doc);status('Saved. Reloading…')}
+  catch(err){const c=err&&err.code;status(c==='conflict'?'A newer version was saved elsewhere. Reloading to it.':(c==='not_writer'||c==='not_granted')?'This view is read-only, so changes can’t be saved here.':'Couldn’t save: '+(err&&err.message||'try again'));$('#saveBtn').disabled=false}
+});
+(async()=>{try{if(!window.claude||!claude.use)return;const [a,u]=await Promise.all([claude.use('artifact'),claude.use('user')]);artifactNS=a;const can=u?await u.canEdit():!!a;if(a&&can){$('#editBtn').hidden=false;assetsNS=await claude.use('assets')}}catch(_){}})();
+
+[['#lv1 .game','f-ideas'],['#lv3 .game','f-whys'],['#lv4 .game','f-scenes'],['#flips','f-flips'],['#reel','f-takes']].forEach(([sel,f])=>{const t=$(sel);if(!t)return;const b=document.createElement('button');b.type='button';b.className='chip lvlEdit';b.textContent='✎ Edit this level';
+  b.addEventListener('click',()=>{fillDrawer();$('#drawer').classList.add('open');const fe=$('#'+f);fe.scrollIntoView({block:'center'});fe.focus()});
+  if(t.classList.contains('game'))t.prepend(b);else t.before(b)});
+renderText();renderImgs();buildGames();renderTrophies();update();tick();
+})();
+</script>
+
+</body>
+</html>
