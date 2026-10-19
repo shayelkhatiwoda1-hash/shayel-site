@@ -22,7 +22,12 @@
     --ink: #111111;
     --muted: #555555;
     --rule: #e3e3e3;
+    --line: #d6d6d6;
+    --dot: #e4e4e4;
+    --dot-lit: #8c8c8c;
     --accent: #2346d8;
+    --mx: -999px;
+    --my: -999px;
   }
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -30,7 +35,10 @@
     margin: 0;
     min-height: 100vh;
     min-height: 100dvh;
-    background: var(--bg);
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--dot) 1px, transparent 1.3px);
+    background-size: 22px 22px;
+    background-attachment: fixed;
     color: var(--ink);
     font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
     font-size: 15px;
@@ -51,7 +59,22 @@
   a:hover, a:focus-visible { color: var(--accent); }
   a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
 
+  /* cursor spotlight on the dot grid (desktop only) */
+  .spot {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: radial-gradient(var(--dot-lit) 1.1px, transparent 1.4px);
+    background-size: 22px 22px;
+    -webkit-mask-image: radial-gradient(200px circle at var(--mx) var(--my), #000 0%, transparent 70%);
+            mask-image: radial-gradient(200px circle at var(--mx) var(--my), #000 0%, transparent 70%);
+  }
+  @media (hover: none) { .spot { display: none; } }
+
   main {
+    position: relative;
+    z-index: 1;
     max-width: 600px;
     margin: 0 auto;
     padding: 72px max(24px, env(safe-area-inset-right)) max(96px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
@@ -66,8 +89,74 @@
   h1 { margin: 0; font-size: 40px; line-height: 1.1; }
   h1 em { color: var(--accent); }
 
-  ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 40px; }
-  li { display: flex; flex-direction: column; gap: 4px; }
+  .now {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .now i {
+    flex: 0 0 auto;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2.4s ease-out infinite;
+  }
+
+  /* timeline */
+  ol {
+    position: relative;
+    list-style: none;
+    margin: 0 0 0 4px;
+    padding: 0 0 0 29px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+  ol::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 1px;
+    background: var(--line);
+    transform-origin: top;
+    animation: grow 1.3s cubic-bezier(.6, 0, .2, 1) both;
+  }
+  li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    animation: rise .7s ease both;
+  }
+  li::before {
+    content: "";
+    position: absolute;
+    left: -33px;
+    top: 10px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1.5px solid var(--accent);
+    animation: pop .45s ease both;
+    transition: transform .2s ease;
+  }
+  li.current::before { background: var(--accent); }
+  li:hover::before { transform: scale(1.5); }
+  li:nth-child(2) { animation-delay: .25s; }
+  li:nth-child(3) { animation-delay: .5s; }
+  li:nth-child(4) { animation-delay: .75s; }
+  li:nth-child(5) { animation-delay: 1s; }
+  li:nth-child(1)::before { animation-delay: .05s; }
+  li:nth-child(2)::before { animation-delay: .3s; }
+  li:nth-child(3)::before { animation-delay: .55s; }
+  li:nth-child(4)::before { animation-delay: .8s; }
+  li:nth-child(5)::before { animation-delay: 1.05s; }
+
   .age { font-style: italic; font-size: 28px; line-height: 1; color: var(--accent); }
   .age span { font-size: 16px; font-style: normal; color: var(--muted); font-family: "IBM Plex Mono", monospace; }
 
@@ -78,26 +167,41 @@
   .contact p { margin: 0; }
   .sign { font-style: italic; font-size: 22px; color: var(--accent); }
 
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  @keyframes pop  { 0% { scale: 0; } 70% { scale: 1.4; } 100% { scale: 1; } }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(35, 70, 216, .45); }
+    70%  { box-shadow: 0 0 0 7px rgba(35, 70, 216, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(35, 70, 216, 0); }
+  }
+
   @media (max-width: 480px) {
     body { font-size: 16px; line-height: 1.6; }
     main { padding-top: max(48px, env(safe-area-inset-top)); gap: 52px; }
     h1 { font-size: 34px; }
     ol { gap: 36px; }
     .age { font-size: 26px; }
+    li::before { top: 9px; }
     .label { font-size: 14px; }
   }
   @media (max-width: 340px) {
     h1 { font-size: 30px; }
   }
-  @media (prefers-reduced-motion: reduce) { a { transition: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    a, li::before { transition: none; }
+    ol::before, li, li::before, .now i { animation: none; }
+  }
 </style>
 </head>
 <body>
+<div class="spot" aria-hidden="true"></div>
 <main>
 
   <header>
     <div class="label">shayel khatiwoda</div>
     <h1 class="serif">stuff i've done since <em>eleven</em>.</h1>
+    <div class="now"><i aria-hidden="true"></i><span>currently: building agentic software for creators</span></div>
   </header>
 
   <ol>
@@ -107,17 +211,17 @@
     </li>
     <li>
       <div class="age serif">15</div>
-      <div>got 1,600,000 subscribers on <a href="https://www.youtube.com/@sh4yel" target="_blank" rel="noopener">youtube</a> in a single month.</div>
+      <div>got 1,600,000 subscribers on <a href="https://www.youtube.com/@sh4yel" target="_blank" rel="noopener">youtube ↗</a> in a single month.</div>
     </li>
     <li>
       <div class="age serif">16</div>
-      <div>ideated and scripted for a channel network doing $10m+ a year. interned at <a href="https://www.baobabstudios.com/" target="_blank" rel="noopener">baobab studios</a>, a 10x emmy-winning studio.</div>
+      <div>ideated and scripted for a channel network doing $10m+ a year. interned at <a href="https://www.baobabstudios.com/" target="_blank" rel="noopener">baobab studios ↗</a>, a 10x emmy-winning studio.</div>
     </li>
     <li>
       <div class="age serif">17</div>
       <div>ran ideation, built workflow pipelines with ai tools, and developed the entire backend of a multi-channel network.</div>
     </li>
-    <li>
+    <li class="current">
       <div class="age serif">18 <span>→ now</span></div>
       <div>ideating for one of the biggest creators in the world, and building agentic software for creators.</div>
     </li>
@@ -125,15 +229,16 @@
 
   <section>
     <div class="label">featured in</div>
-    <a href="https://www.youtube.com/watch?v=DHKMVLdjH2E" target="_blank" rel="noopener">i made a secret youtube channel to prove it's not luck — daniel bitton</a>
+    <a href="https://www.youtube.com/watch?v=DHKMVLdjH2E" target="_blank" rel="noopener">i made a secret youtube channel to prove it's not luck — daniel bitton ↗</a>
   </section>
 
   <section>
     <div class="label">elsewhere</div>
     <div class="links">
-      <a href="https://www.linkedin.com/in/shayelk/" target="_blank" rel="noopener">linkedin</a>
-      <a href="https://www.instagram.com/sh4yel/" target="_blank" rel="noopener">instagram</a>
-      <a href="https://x.com/sh4yel" target="_blank" rel="noopener">x</a>
+      <a href="https://www.youtube.com/@sh4yel" target="_blank" rel="noopener">youtube ↗</a>
+      <a href="https://www.linkedin.com/in/shayelk/" target="_blank" rel="noopener">linkedin ↗</a>
+      <a href="https://www.instagram.com/sh4yel/" target="_blank" rel="noopener">instagram ↗</a>
+      <a href="https://x.com/sh4yel" target="_blank" rel="noopener">x ↗</a>
     </div>
   </section>
 
@@ -145,5 +250,22 @@
   <div class="sign serif">— shayel</div>
 
 </main>
+<script>
+  // move the dot-grid spotlight with the cursor (desktop only)
+  (function () {
+    if (!window.matchMedia || !matchMedia('(hover: hover)').matches) return;
+    var root = document.documentElement, x = -999, y = -999, queued = false;
+    function apply() {
+      queued = false;
+      root.style.setProperty('--mx', x + 'px');
+      root.style.setProperty('--my', y + 'px');
+    }
+    window.addEventListener('pointermove', function (e) {
+      x = e.clientX; y = e.clientY;
+      if (!queued) { queued = true; requestAnimationFrame(apply); }
+    }, { passive: true });
+    document.addEventListener('pointerleave', function () { x = y = -999; apply(); });
+  })();
+</script>
 </body>
 </html>
