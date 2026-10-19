@@ -364,8 +364,8 @@
   </ol>
 
   <section class="ideas">
-    <div class="label">ideas pitched</div>
-    <div class="big"><span data-ideas="100">100</span>+<small>every week</small></div>
+    <div class="label">ideas pitched this year</div>
+    <div class="big"><span data-ideas data-per-week="140">5,740</span>+<small>140 a week, every week</small></div>
   </section>
 
   <section>
@@ -389,7 +389,7 @@
       <a href="mailto:contact@shayel.world">contact@shayel.world</a>
       <button class="copy" type="button" data-copy="contact@shayel.world" aria-live="polite">copy</button>
     </div>
-    <a class="book" href="https://calendly.com/shayelkhatiwoda1/30min" target="_blank" rel="noopener">or grab 30 min on my calendar <span aria-hidden="true">→</span></a>
+    <a class="book" href="https://calendly.com/shayelkhatiwoda1/30min" target="_blank" rel="noopener">or grab 15 min on my calendar <span aria-hidden="true">→</span></a>
   </section>
 
   <div class="end">
@@ -525,15 +525,26 @@
     var num = document.querySelector('[data-ideas]'), sig = document.querySelector('.sig');
     function countIdeas() {
       if (!num || reduce) return;
-      var target = +num.getAttribute('data-ideas'), start = null, dur = 1400;
+      var target = ideasThisYear(), start = null, dur = 1800;
       function step(t) {
         if (start === null) start = t;
         var p = Math.min(1, (t - start) / dur), e = 1 - Math.pow(1 - p, 3);
-        num.textContent = Math.round(target * e);
+        num.textContent = Math.round(target * e).toLocaleString('en-US');
         if (p < 1) requestAnimationFrame(step);
       }
       requestAnimationFrame(step);
     }
+    // full weeks since jan 1 (eastern time) x ideas per week
+    function ideasThisYear() {
+      var per = num ? +num.getAttribute('data-per-week') || 140 : 140;
+      var parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: 'numeric', day: 'numeric' })
+        .formatToParts(new Date()).reduce(function (o, p) { o[p.type] = +p.value; return o; }, {});
+      var today = Date.UTC(parts.year, parts.month - 1, parts.day);
+      var jan1 = Date.UTC(parts.year, 0, 1);
+      var weeks = Math.floor((today - jan1) / (7 * 864e5));
+      return weeks * per;
+    }
+    if (num) num.textContent = ideasThisYear().toLocaleString('en-US');
     if (num && !reduce) num.textContent = '0';
     function drawSig() { if (sig) sig.classList.add('draw'); }
     if (!('IntersectionObserver' in window)) { countIdeas(); drawSig(); return; }
