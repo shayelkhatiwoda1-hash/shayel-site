@@ -14,6 +14,7 @@
 <meta property="og:url" content="https://shayel.world/">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23ffffff'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-style='italic' font-size='22' fill='%232346D8'%3Es%3C/text%3E%3C/svg%3E">
+<script>try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
@@ -31,8 +32,20 @@
     --my: -999px;
     color-scheme: light dark;
   }
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0f0f10;
+    --ink: #ededeb;
+    --muted: #a3a3a0;
+    --rule: #2a2a2b;
+    --line: #3a3a3b;
+    --dot: #1f1f21;
+    --dot-lit: #5c5c60;
+    --accent: #7f9bff;
+  }
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
       --bg: #0f0f10;
       --ink: #ededeb;
       --muted: #a3a3a0;
@@ -110,9 +123,49 @@
   h1 { margin: 0; font-size: 40px; line-height: 1.1; }
   h1 em { color: var(--accent); }
 
+  .topline { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  .theme {
+    flex: 0 0 auto;
+    width: 44px; height: 44px; margin: -12px -10px -12px 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: 0; border-radius: 50%;
+    font: inherit; font-size: 16px; line-height: 1; color: var(--muted);
+    cursor: pointer; transition: color .15s, transform .4s ease;
+  }
+  .theme:hover { color: var(--accent); transform: rotate(180deg); }
+  .theme:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
+
+  /* hidden note on "eleven" */
+  .note { position: relative; cursor: help; outline: none; border-radius: 2px; }
+  .note::after {
+    content: "(yes, fortnite counts)";
+    position: absolute;
+    left: 50%; bottom: calc(100% + 6px);
+    transform: translate(-50%, 4px);
+    white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--ink);
+    color: var(--bg);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-style: normal;
+    font-size: 12px;
+    line-height: 1.4;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease;
+  }
+  .note:hover::after, .note:focus::after { opacity: 1; transform: translate(-50%, 0); }
+  .note:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  .num { font-variant-numeric: tabular-nums; }
+
+  .end { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px; }
+  .clock { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
   .now {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     margin-top: 12px;
     font-size: 13px;
@@ -122,6 +175,7 @@
     flex: 0 0 auto;
     width: 7px;
     height: 7px;
+    margin-top: 0.62em;
     border-radius: 50%;
     background: var(--accent);
     animation: pulse 2.4s ease-out infinite;
@@ -226,7 +280,7 @@
     h1 { font-size: 30px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    a, li::before { transition: none; }
+    a, li::before, .theme, .note::after { transition: none; }
     ol::before, li, li::before, .now i { animation: none; }
   }
 </style>
@@ -236,8 +290,11 @@
 <main>
 
   <header>
-    <div class="label">shayel khatiwoda</div>
-    <h1 class="serif">stuff i've done since <em>eleven</em>.</h1>
+    <div class="topline">
+      <div class="label">shayel khatiwoda</div>
+      <button class="theme" type="button" aria-label="Switch light or dark theme" title="switch theme"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg></button>
+    </div>
+    <h1 class="serif">stuff i've done since <em class="note" tabindex="0">eleven</em>.</h1>
     <div class="now"><i aria-hidden="true"></i><span>currently: building agentic software for creators</span></div>
   </header>
 
@@ -248,7 +305,7 @@
     </li>
     <li>
       <div class="age serif">15</div>
-      <div>got 1,600,000 subscribers on <a href="https://www.youtube.com/@sh4yel" target="_blank" rel="noopener">youtube ↗</a> in a single month.</div>
+      <div>got <span class="num" data-count="1600000">1,600,000</span> subscribers on <a href="https://www.youtube.com/@sh4yel" target="_blank" rel="noopener">youtube ↗</a> in a single month.</div>
     </li>
     <li>
       <div class="age serif">16</div>
@@ -287,7 +344,10 @@
     </div>
   </section>
 
-  <div class="sign serif">— shayel</div>
+  <div class="end">
+    <div class="sign serif">— shayel</div>
+    <div class="clock" aria-label="Shayel's local time"></div>
+  </div>
 
 </main>
 <script>
@@ -325,6 +385,64 @@
       }
     });
   })();
+
+  // light / dark switch (remembers the visitor's choice)
+  (function () {
+    var root = document.documentElement, btn = document.querySelector('.theme');
+    var saved = null;
+    try { saved = localStorage.getItem('theme'); } catch (e) {}
+    if (saved === 'light' || saved === 'dark') root.setAttribute('data-theme', saved);
+    function current() {
+      var t = root.getAttribute('data-theme');
+      if (t) return t;
+      return window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function syncMeta() {
+      var bg = getComputedStyle(root).getPropertyValue('--bg').trim();
+      document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.setAttribute('content', bg); });
+    }
+    if (saved) syncMeta();
+    if (btn) btn.addEventListener('click', function () {
+      var next = current() === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('theme', next); } catch (e) {}
+      syncMeta();
+    });
+  })();
+
+  // count 1,600,000 up from zero
+  (function () {
+    var el = document.querySelector('[data-count]');
+    if (!el) return;
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var target = +el.getAttribute('data-count'), fmt = function (n) { return n.toLocaleString('en-US'); };
+    el.textContent = '0';
+    setTimeout(function () {
+      var start = null, dur = 1400;
+      function step(t) {
+        if (start === null) start = t;
+        var p = Math.min(1, (t - start) / dur), eased = 1 - Math.pow(1 - p, 4);
+        el.textContent = fmt(Math.round(target * eased));
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }, 450);
+  })();
+
+  // my local time
+  (function () {
+    var el = document.querySelector('.clock');
+    if (!el || !window.Intl) return;
+    var f = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
+    function tick() { el.textContent = f.format(new Date()).toLowerCase() + ' et, for me'; }
+    tick(); setInterval(tick, 20000);
+  })();
+
+  // for the curious
+  try {
+    console.log('%cyou opened the console. respect.', 'font: italic 18px Georgia, serif; color: #2346d8');
+    console.log('if you build things for creators, say hi → contact@shayel.world');
+  } catch (e) {}
 
   // tab title easter egg
   (function () {
