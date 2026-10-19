@@ -14,7 +14,7 @@
 <meta property="og:url" content="https://shayel.world/">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23ffffff'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-style='italic' font-size='22' fill='%232346D8'%3Es%3C/text%3E%3C/svg%3E">
-<script>try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script>document.documentElement.classList.add('js');try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
@@ -198,14 +198,14 @@
     width: 1px;
     background: var(--line);
     transform-origin: top;
-    animation: grow 1.3s cubic-bezier(.6, 0, .2, 1) both;
+    animation: grow 2.2s cubic-bezier(.45, 0, .2, 1) both;
   }
   li {
     position: relative;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    animation: rise .7s ease both;
+    animation: rise .9s cubic-bezier(.2, .7, .2, 1) both;
   }
   li::before {
     content: "";
@@ -217,20 +217,25 @@
     border-radius: 50%;
     background: var(--bg);
     border: 1.5px solid var(--accent);
-    animation: pop .45s ease both;
+    animation: pop .55s cubic-bezier(.3, 1.4, .5, 1) both;
     transition: transform .2s ease;
   }
   li.current::before { background: var(--accent); }
   li:hover::before { transform: scale(1.5); }
-  li:nth-child(2) { animation-delay: .25s; }
-  li:nth-child(3) { animation-delay: .5s; }
-  li:nth-child(4) { animation-delay: .75s; }
-  li:nth-child(5) { animation-delay: 1s; }
-  li:nth-child(1)::before { animation-delay: .05s; }
-  li:nth-child(2)::before { animation-delay: .3s; }
-  li:nth-child(3)::before { animation-delay: .55s; }
-  li:nth-child(4)::before { animation-delay: .8s; }
-  li:nth-child(5)::before { animation-delay: 1.05s; }
+  li:nth-child(1) { animation-delay: .1s; }
+  li:nth-child(2) { animation-delay: .6s; }
+  li:nth-child(3) { animation-delay: 1.1s; }
+  li:nth-child(4) { animation-delay: 1.6s; }
+  li:nth-child(5) { animation-delay: 2.1s; }
+  li:nth-child(1)::before { animation-delay: .15s; }
+  li:nth-child(2)::before { animation-delay: .65s; }
+  li:nth-child(3)::before { animation-delay: 1.15s; }
+  li:nth-child(4)::before { animation-delay: 1.65s; }
+  li:nth-child(5)::before { animation-delay: 2.15s; }
+  /* hold everything at its start until the timeline is actually on screen */
+  .js ol:not(.go)::before,
+  .js ol:not(.go) li,
+  .js ol:not(.go) li::before { animation-play-state: paused; }
 
   .age { font-style: italic; font-size: 28px; line-height: 1; color: var(--accent); }
   .age span { font-size: 16px; font-style: normal; color: var(--muted); font-family: "IBM Plex Mono", monospace; }
@@ -410,23 +415,41 @@
     });
   })();
 
-  // count 1,600,000 up from zero
+  // play the timeline once it's on screen and the fonts are ready, then count 1,600,000 up
   (function () {
-    var el = document.querySelector('[data-count]');
-    if (!el) return;
-    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    var target = +el.getAttribute('data-count'), fmt = function (n) { return n.toLocaleString('en-US'); };
-    el.textContent = '0';
-    setTimeout(function () {
-      var start = null, dur = 1400;
+    var list = document.querySelector('ol');
+    var num = document.querySelector('[data-count]');
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!list) return;
+    if (reduce) { list.classList.add('go'); return; }
+    var target = num ? +num.getAttribute('data-count') : 0;
+    if (num) num.textContent = '0';
+    function countUp() {
+      if (!num) return;
+      var start = null, dur = 2000;
       function step(t) {
         if (start === null) start = t;
-        var p = Math.min(1, (t - start) / dur), eased = 1 - Math.pow(1 - p, 4);
-        el.textContent = fmt(Math.round(target * eased));
+        var p = Math.min(1, (t - start) / dur), eased = 1 - Math.pow(1 - p, 3);
+        num.textContent = Math.round(target * eased).toLocaleString('en-US');
         if (p < 1) requestAnimationFrame(step);
       }
       requestAnimationFrame(step);
-    }, 450);
+    }
+    var started = false;
+    function play() {
+      if (started) return; started = true;
+      list.classList.add('go');
+      setTimeout(countUp, 750); // just after the "15" row lands
+    }
+    var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+    var timeout = new Promise(function (r) { setTimeout(r, 1500); }); // don't wait forever on slow fonts
+    Promise.race([fontsReady, timeout]).then(function () {
+      if (!('IntersectionObserver' in window)) { play(); return; }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { if (e.isIntersecting) { play(); io.disconnect(); } });
+      }, { threshold: 0.15 });
+      io.observe(list);
+    });
   })();
 
   // my local time
