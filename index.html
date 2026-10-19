@@ -12,7 +12,12 @@
 <meta property="og:description" content="stuff i've done since eleven.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://shayel.world/">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://shayel.world/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="shayel khatiwoda — stuff i've done since eleven.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://shayel.world/og.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23ffffff'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-style='italic' font-size='22' fill='%232346D8'%3Es%3C/text%3E%3C/svg%3E">
 <script>document.documentElement.classList.add('js');try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -160,7 +165,7 @@
 
   .num { font-variant-numeric: tabular-nums; }
 
-  .end { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px; }
+  .end { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
   .clock { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
   .now {
@@ -247,6 +252,32 @@
   .contact p { margin: 0; }
   .sign { font-style: italic; font-size: 22px; color: var(--accent); }
 
+  /* rotating "currently" line */
+  .rot { display: inline-block; transition: opacity .35s ease, transform .35s ease; }
+  .rot.out { opacity: 0; transform: translateY(-6px); }
+  .rot.pre { opacity: 0; transform: translateY(6px); transition: none; }
+
+  /* ideas counter */
+  .ideas { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+  .ideas .big { font-family: "Newsreader", Georgia, serif; font-style: italic; font-size: 44px; line-height: 1; color: var(--accent); }
+  .ideas .big small { font-family: "IBM Plex Mono", monospace; font-style: normal; font-size: 15px; color: var(--muted); margin-left: 10px; }
+
+  /* hand-drawn signature */
+  .sig { display: block; height: 40px; width: auto; overflow: visible; }
+  .sig text {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 30px;
+    fill: var(--accent);
+    stroke: var(--accent);
+    stroke-width: .7px;
+    stroke-linejoin: round;
+  }
+  .js .sig text { fill-opacity: 0; stroke-dasharray: 520; stroke-dashoffset: 520; }
+  .js .sig.draw text { animation: ink 2.4s cubic-bezier(.5, 0, .3, 1) forwards, fillin .7s ease 1.9s forwards; }
+  @keyframes ink { to { stroke-dashoffset: 0; } }
+  @keyframes fillin { to { fill-opacity: 1; stroke-width: 0; } }
+
   .mail { display: flex; flex-wrap: wrap; align-items: center; gap: 0 16px; }
   .copy {
     min-height: 44px;
@@ -287,6 +318,8 @@
   @media (prefers-reduced-motion: reduce) {
     a, li::before, .theme, .note::after { transition: none; }
     ol::before, li, li::before, .now i { animation: none; }
+    .js .sig text { fill-opacity: 1; stroke-dashoffset: 0; animation: none; }
+    .rot { transition: none; }
   }
 </style>
 </head>
@@ -300,7 +333,7 @@
       <button class="theme" type="button" aria-label="Switch light or dark theme" title="switch theme"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg></button>
     </div>
     <h1 class="serif">stuff i've done since <em class="note" tabindex="0">eleven</em>.</h1>
-    <div class="now"><i aria-hidden="true"></i><span>currently: building agentic software for creators</span></div>
+    <div class="now"><i aria-hidden="true"></i><span>currently: <span class="rot" aria-live="off">building agentic software for creators</span></span></div>
   </header>
 
   <ol>
@@ -326,6 +359,11 @@
     </li>
   </ol>
 
+  <section class="ideas">
+    <div class="label">ideas pitched</div>
+    <div class="big"><span data-ideas="100">100</span>+<small>every week</small></div>
+  </section>
+
   <section>
     <div class="label">featured in</div>
     <a href="https://www.youtube.com/watch?v=DHKMVLdjH2E" target="_blank" rel="noopener">i made a secret youtube channel to prove it's not luck — daniel bitton ↗</a>
@@ -350,7 +388,7 @@
   </section>
 
   <div class="end">
-    <div class="sign serif">— shayel</div>
+    <svg class="sig" viewBox="0 0 150 40" role="img" aria-label="— shayel"><text x="2" y="30">— shayel</text></svg>
     <div class="clock" aria-label="Shayel's local time"></div>
   </div>
 
@@ -450,6 +488,60 @@
       }, { threshold: 0.15 });
       io.observe(list);
     });
+  })();
+
+  // rotate the "currently" line
+  (function () {
+    var el = document.querySelector('.rot');
+    if (!el) return;
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var lines = [
+      'building agentic software for creators',
+      "ideating for one of youtube's biggest creators",
+      'writing scripts',
+      'probably on fortnite'
+    ], i = 0;
+    setInterval(function () {
+      if (document.hidden) return;
+      el.classList.add('out');
+      setTimeout(function () {
+        i = (i + 1) % lines.length;
+        el.textContent = lines[i];
+        el.classList.remove('out'); el.classList.add('pre');
+        void el.offsetWidth;
+        el.classList.remove('pre');
+      }, 350);
+    }, 3200);
+  })();
+
+  // ideas counter + signature: play when scrolled into view
+  (function () {
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var num = document.querySelector('[data-ideas]'), sig = document.querySelector('.sig');
+    function countIdeas() {
+      if (!num || reduce) return;
+      var target = +num.getAttribute('data-ideas'), start = null, dur = 1400;
+      function step(t) {
+        if (start === null) start = t;
+        var p = Math.min(1, (t - start) / dur), e = 1 - Math.pow(1 - p, 3);
+        num.textContent = Math.round(target * e);
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+    if (num && !reduce) num.textContent = '0';
+    function drawSig() { if (sig) sig.classList.add('draw'); }
+    if (!('IntersectionObserver' in window)) { countIdeas(); drawSig(); return; }
+    function watch(el, fn) {
+      if (!el) return;
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { fn(); io.disconnect(); } });
+      }, { threshold: 0.6 });
+      io.observe(el);
+    }
+    watch(num && num.closest('.ideas'), countIdeas);
+    var fonts = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+    fonts.then(function () { watch(sig, drawSig); });
   })();
 
   // my local time
