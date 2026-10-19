@@ -260,7 +260,11 @@
   /* ideas counter */
   .ideas { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
   .ideas .big { font-family: "Newsreader", Georgia, serif; font-style: italic; font-size: 44px; line-height: 1; color: var(--accent); }
-  .ideas .big small { font-family: "IBM Plex Mono", monospace; font-style: normal; font-size: 15px; color: var(--muted); margin-left: 10px; }
+  .ideas .big { font-variant-numeric: tabular-nums; }
+  .ideas .sub { font-size: 13px; color: var(--muted); }
+  /* stays hidden until the timeline has finished drawing */
+  .js .ideas { opacity: 0; transform: translateY(8px); transition: opacity .8s ease, transform .8s cubic-bezier(.2, .7, .2, 1); }
+  .js .ideas.show { opacity: 1; transform: none; }
 
   /* hand-drawn signature */
   .sig { display: block; height: 40px; width: auto; overflow: visible; }
@@ -324,6 +328,7 @@
     ol::before, li, li::before, .now i { animation: none; }
     .js .sig text { fill-opacity: 1; stroke-dashoffset: 0; animation: none; }
     .rot { transition: none; }
+    .js .ideas { opacity: 1; transform: none; transition: none; }
   }
 </style>
 </head>
@@ -365,7 +370,8 @@
 
   <section class="ideas">
     <div class="label">ideas pitched this year</div>
-    <div class="big"><span data-ideas data-per-week="140">5,740</span>+<small>140 a week, every week</small></div>
+    <div class="big"><span data-ideas data-per-week="140">5,740</span>+</div>
+    <div class="sub">140 a week, every week</div>
   </section>
 
   <section>
@@ -464,7 +470,7 @@
     var num = document.querySelector('[data-count]');
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!list) return;
-    if (reduce) { list.classList.add('go'); return; }
+    if (reduce) { list.classList.add('go'); window.__timelineDone = true; return; }
     var target = num ? +num.getAttribute('data-count') : 0;
     if (num) num.textContent = '0';
     function countUp() {
@@ -483,6 +489,10 @@
       if (started) return; started = true;
       list.classList.add('go');
       setTimeout(countUp, 750); // just after the "15" row lands
+      setTimeout(function () {
+        window.__timelineDone = true;
+        window.dispatchEvent(new Event('timelinedone'));
+      }, 3100);
     }
     var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
     var timeout = new Promise(function (r) { setTimeout(r, 1500); }); // don't wait forever on slow fonts
@@ -547,7 +557,10 @@
     if (num) num.textContent = ideasThisYear().toLocaleString('en-US');
     if (num && !reduce) num.textContent = '0';
     function drawSig() { if (sig) sig.classList.add('draw'); }
-    if (!('IntersectionObserver' in window)) { countIdeas(); drawSig(); return; }
+    if (!('IntersectionObserver' in window)) {
+      var box = num && num.closest('.ideas'); if (box) box.classList.add('show');
+      countIdeas(); drawSig(); return;
+    }
     function watch(el, fn) {
       if (!el) return;
       var io = new IntersectionObserver(function (es) {
@@ -555,7 +568,17 @@
       }, { threshold: 0.6 });
       io.observe(el);
     }
-    watch(num && num.closest('.ideas'), countIdeas);
+    var ideasBox = num && num.closest('.ideas');
+    function afterTimeline(fn) {
+      if (window.__timelineDone) fn();
+      else window.addEventListener('timelinedone', fn, { once: true });
+    }
+    afterTimeline(function () {
+      watch(ideasBox, function () {
+        if (ideasBox) ideasBox.classList.add('show');
+        setTimeout(countIdeas, 250);
+      });
+    });
     var fonts = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
     fonts.then(function () { watch(sig, drawSig); });
   })();
