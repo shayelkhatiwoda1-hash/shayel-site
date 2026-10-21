@@ -222,7 +222,15 @@
     animation: pop .55s cubic-bezier(.3, 1.4, .5, 1) both;
     transition: transform .2s ease;
   }
-  li.current::before { background: var(--accent); }
+  li.sel::before { background: var(--accent); }
+  /* each timeline dot is a button that takes the page back to that age */
+  .tdot {
+    position: absolute; left: -47px; top: -4px; width: 37px; height: 37px;
+    padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer;
+  }
+  .tdot:focus-visible { outline: 2px solid var(--accent); outline-offset: -8px; }
+  li .age { cursor: pointer; }
+  li:has(.tdot:hover)::before { transform: scale(1.5); }
   li:hover::before { transform: scale(1.5); }
   li:nth-child(1) { animation-delay: .1s; }
   li:nth-child(2) { animation-delay: .6s; }
@@ -312,31 +320,15 @@
 
   /* drag to grow up */
   .grow { display: flex; flex-direction: column; gap: 6px; margin-bottom: -24px; }
-  .grow-row { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .grow-val { color: var(--accent); }
-  .grow input {
-    -webkit-appearance: none; appearance: none;
-    flex: 1 1 auto; min-width: 0; height: 44px; margin: 0;
-    background: transparent; cursor: pointer;
-  }
-  .grow input::-webkit-slider-runnable-track { height: 1px; background: var(--line); }
-  .grow input::-moz-range-track { height: 1px; background: var(--line); }
-  .grow input::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 16px; height: 16px; margin-top: -7.5px;
-    border-radius: 50%; background: var(--accent); border: 3px solid var(--bg);
-    box-shadow: 0 0 0 1px var(--accent);
-  }
-  .grow input::-moz-range-thumb {
-    width: 10px; height: 10px; border-radius: 50%;
-    background: var(--accent); border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--accent);
-  }
-  .grow input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
   .go11 {
     align-self: flex-start; min-height: 32px; padding: 0;
     background: none; border: 0; font: inherit; font-size: 13px;
     color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
   }
-  li.later, .ideas.later { display: none; }
+  .ideas.later { display: none; }
+  li > div { transition: opacity .35s ease; }
+  li.later > div { opacity: .28; }
+  li.later::before { opacity: .55; }
   .js ol.settled li, .js ol.settled li::before { animation-delay: 0s; animation-duration: .5s; }
 
   /* fine print */
@@ -500,33 +492,33 @@
   </header>
 
   <div class="grow">
-    <label class="label" for="age">drag to grow up · <span class="grow-val">age 18, now</span></label>
-    <div class="grow-row">
-      <span aria-hidden="true">11</span>
-      <input id="age" type="range" min="11" max="18" step="1" value="18" aria-valuetext="age 18, now">
-      <span aria-hidden="true">18</span>
-    </div>
+    <div class="label"><span class="verb">click</span> a dot to go back in time · <span class="grow-val" aria-live="polite">age 18, now</span></div>
     <button class="go11" type="button" hidden>this is the mild version. go full 11 →</button>
   </div>
 
   <ol>
     <li data-age="11">
+      <button class="tdot" type="button" aria-label="show the site at 11" aria-pressed="false"></button>
       <div class="age serif">11</div>
       <div>won my first fortnite game.</div>
     </li>
     <li data-age="15">
+      <button class="tdot" type="button" aria-label="show the site at 15" aria-pressed="false"></button>
       <div class="age serif">15</div>
       <div>got <span class="num" data-count="1600000">1,600,000</span> subscribers on <a href="https://www.youtube.com/@sh4yel" target="_blank" rel="noopener">youtube ↗</a> in a single month.</div>
     </li>
     <li data-age="16">
+      <button class="tdot" type="button" aria-label="show the site at 16" aria-pressed="false"></button>
       <div class="age serif">16</div>
       <div>ideated and scripted for a channel network doing $10m+ a year. interned at <a href="https://www.baobabstudios.com/" target="_blank" rel="noopener">baobab studios ↗</a>, a 10x emmy-winning studio.</div>
     </li>
     <li data-age="17">
+      <button class="tdot" type="button" aria-label="show the site at 17" aria-pressed="false"></button>
       <div class="age serif">17</div>
       <div>ran ideation, built workflow pipelines with ai tools, and developed the entire backend of a multi-channel network.</div>
     </li>
-    <li class="current" data-age="18">
+    <li class="sel" data-age="18">
+      <button class="tdot" type="button" aria-label="show the site now, at 18" aria-pressed="true"></button>
       <div class="age serif">18 <span>→ now</span></div>
       <div>ideating for one of the biggest creators in the world, and building agentic software for creators.</div>
     </li>
@@ -735,11 +727,12 @@
       for (var k = 0; k < cols; k++) if (Math.abs(xs[k] - e.clientX) <= s * .45) { c = k; break; }
       var r = Math.round((e.pageY - s / 2) / s), i = r * cols + c, q = (c >= 0 && r >= 0) ? pos(i) : null;
       var near = q && Math.abs(q.y - e.pageY) <= s * .45;
-      if (inColumn || !near) { if (hover !== -1) { hover = -1; tip.classList.remove('on'); redraw(); } return; }
+      if (inColumn || !near) { if (hover !== -1) { hover = -1; tip.classList.remove('on'); document.body.style.cursor = ''; redraw(); } return; }
       if (i === hover) return;
       hover = i;
+      document.body.style.cursor = i < N ? 'pointer' : '';
       var t = START + i * DAY, m = msAt[i], label;
-      if (i >= cutoff && i < N) label = fmt.format(t).toLowerCase() + ' · age ' + ageAt(t) + ' · drag to grow up';
+      if (i >= cutoff && i < N) label = fmt.format(t).toLowerCase() + ' · age ' + ageAt(t) + ' · click to jump here';
       else if (i >= N) label = fmt.format(t).toLowerCase() + ' · hasn\'t happened yet';
       else if (i === N - 1) label = 'today · day ' + N.toLocaleString('en-US') + ' since 11';
       else if (m) label = 'sometime at ' + m.age + ' · ' + m.t;
@@ -749,7 +742,13 @@
       tip.classList.add('on');
       redraw();
     }, { passive: true });
-    document.addEventListener('pointerleave', function () { hover = -1; tip.classList.remove('on'); redraw(); });
+    document.addEventListener('pointerleave', function () { hover = -1; tip.classList.remove('on'); document.body.style.cursor = ''; redraw(); });
+    // click a lived day in the margins to see the site at that age
+    window.addEventListener('click', function (e) {
+      if (e.detail === 0 || (e.target.closest && e.target.closest('button, a, input, .r11'))) return;   // keyboard or a real control
+      if (hover < 0 || hover >= N || !window.__setAge) return;
+      window.__setAge(Math.max(11, Math.min(18, ageAt(START + hover * DAY))));
+    });
 
     // hovering a timeline row rings its day
     document.querySelectorAll('ol li[data-age]').forEach(function (li) {
@@ -772,27 +771,39 @@
     if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
   })();
 
-  // drag to grow up
+  // click a timeline dot (or a day in the margins) to see the site at that age
   (function () {
-    var input = document.getElementById('age'), root = document.documentElement;
-    if (!input) return;
-    var val = document.querySelector('.grow-val'), go11 = document.querySelector('.go11');
+    var root = document.documentElement, val = document.querySelector('.grow-val'), go11 = document.querySelector('.go11');
     var rows = document.querySelectorAll('ol li[data-age]'), ideas = document.querySelector('.ideas');
+    var verb = document.querySelector('.verb');
+    if (verb && window.matchMedia && matchMedia('(hover: none)').matches) verb.textContent = 'tap';
+    var ages = [].map.call(rows, function (li) { return +li.getAttribute('data-age'); });
     function era(a) { return a <= 14 ? 'kid' : a === 15 ? 'yt' : a <= 17 ? 'teen' : 'now'; }
     function set(a) {
       if (a < 18) loadEraFonts();
       if (window.__playTimeline) window.__playTimeline();
       var e = era(a);
       if (e === 'now') root.removeAttribute('data-era'); else root.setAttribute('data-era', e);
-      rows.forEach(function (li) { li.classList.toggle('later', +li.getAttribute('data-age') > a); });
+      var selAge = ages.filter(function (x) { return x <= a; }).pop();
+      rows.forEach(function (li) {
+        var la = +li.getAttribute('data-age');
+        li.classList.toggle('later', la > a);
+        li.classList.toggle('sel', la === selAge);
+        var b = li.querySelector('.tdot'); if (b) b.setAttribute('aria-pressed', la === selAge ? 'true' : 'false');
+      });
       if (ideas) { ideas.classList.toggle('later', a < 18); if (a === 18) ideas.classList.add('show'); }
-      val.textContent = a === 18 ? 'age 18, now' : 'age ' + a;
-      input.setAttribute('aria-valuetext', a === 18 ? 'age 18, now' : 'age ' + a);
-      go11.hidden = a !== 11;
+      if (val) val.textContent = a === 18 ? 'age 18, now' : 'age ' + a;
+      if (go11) go11.hidden = a !== 11;
       if (window.__days) window.__days.setAge(a);
     }
-    input.addEventListener('input', function () { set(+input.value); });
-    go11.addEventListener('click', function () { if (window.__rewind) window.__rewind(true); });
+    window.__setAge = set;
+    rows.forEach(function (li) {
+      var a = +li.getAttribute('data-age');
+      var b = li.querySelector('.tdot'), num = li.querySelector('.age');
+      if (b) b.addEventListener('click', function () { set(a); });
+      if (num) num.addEventListener('click', function () { set(a); });
+    });
+    if (go11) go11.addEventListener('click', function () { if (window.__rewind) window.__rewind(true); });
   })();
 
   // rewind to 11
