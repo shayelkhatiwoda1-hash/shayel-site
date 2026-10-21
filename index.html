@@ -687,23 +687,39 @@
       var past = v('--dot-past'), fut = v('--dot-future'), acc = v('--accent');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, D);
-      var rows = Math.floor(D / s), pPast = new Path2D(), pFut = new Path2D(), marks = [];
+      // dots ease down to half strength behind the text, over ~200px, so there's no edge
+      var cr = column.getBoundingClientRect(), cL = cr.left, cR = cr.right, LEVELS = 12;
+      function level(x) {
+        if (!wide) return LEVELS;
+        var d = Math.min(x - cL, cR - x), t = Math.max(0, Math.min(1, (d + 70) / 230));
+        t = t * t * (3 - 2 * t);
+        return Math.round((1 - .5 * t) * LEVELS);
+      }
+      var sideLv = xs.map(level), midLv = mid.map(level), buckets = {};
+      function dot(kind, lv, x, y, r) {
+        var key = kind + lv, b = buckets[key] || (buckets[key] = { kind: kind, a: lv / LEVELS, path: new Path2D() });
+        b.path.moveTo(x + r, y); b.path.arc(x, y, r, 0, 6.283);
+      }
+      var rows = Math.floor(D / s), marks = [];
       for (var r = 0; r < rows; r++) {
         var y = r * s + s / 2;
         for (var c = 0; c < cols; c++) {
-          var i = r * cols + c, x = xs[c];
+          var i = r * cols + c;
           if (i < cutoff) {
             var m = msAt[i];
             if (m && m.age <= cutAge) marks.push(i);
-            else { pPast.moveTo(x + 1.15, y); pPast.arc(x, y, 1.15, 0, 6.283); }
-          } else { pFut.moveTo(x + 1, y); pFut.arc(x, y, 1, 0, 6.283); }
+            else dot('p', sideLv[c], xs[c], y, 1.15);
+          } else dot('f', sideLv[c], xs[c], y, 1);
         }
-        // dots behind the text match their row, so the column never shows as a box
-        var rowPast = r * cols < cutoff, pRow = rowPast ? pPast : pFut, rr = rowPast ? 1.15 : 1;
-        for (var k = 0; k < mid.length; k++) { pRow.moveTo(mid[k] + rr, y); pRow.arc(mid[k], y, rr, 0, 6.283); }
+        // dots behind the text match their row's shade
+        var rowPast = r * cols < cutoff;
+        for (var k = 0; k < mid.length; k++) dot(rowPast ? 'p' : 'f', midLv[k], mid[k], y, rowPast ? 1.15 : 1);
       }
-      ctx.fillStyle = fut; ctx.fill(pFut);
-      ctx.fillStyle = past; ctx.fill(pPast);
+      Object.keys(buckets).forEach(function (key) {
+        var b = buckets[key];
+        ctx.globalAlpha = b.a; ctx.fillStyle = b.kind === 'p' ? past : fut; ctx.fill(b.path);
+      });
+      ctx.globalAlpha = 1;
       marks.forEach(function (i) { marker(pos(i), acc, false); });
       [hover, ring].forEach(function (i) { if (i >= 0 && i < cols * rows) marker(pos(i), acc, true); });
     }
