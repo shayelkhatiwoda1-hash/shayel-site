@@ -698,7 +698,9 @@
             else { pPast.moveTo(x + 1.15, y); pPast.arc(x, y, 1.15, 0, 6.283); }
           } else { pFut.moveTo(x + 1, y); pFut.arc(x, y, 1, 0, 6.283); }
         }
-        for (var k = 0; k < mid.length; k++) { pFut.moveTo(mid[k] + 1, y); pFut.arc(mid[k], y, 1, 0, 6.283); }
+        // dots behind the text match their row, so the column never shows as a box
+        var rowPast = r * cols < cutoff, pRow = rowPast ? pPast : pFut, rr = rowPast ? 1.15 : 1;
+        for (var k = 0; k < mid.length; k++) { pRow.moveTo(mid[k] + rr, y); pRow.arc(mid[k], y, rr, 0, 6.283); }
       }
       ctx.fillStyle = fut; ctx.fill(pFut);
       ctx.fillStyle = past; ctx.fill(pPast);
