@@ -95,9 +95,10 @@
 
   /* every dot is a day since age 11 (drawn on a canvas when JS runs) */
   .js body { background-image: none; }
-  .days { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  html { position: relative; }
+  .days { position: absolute; top: 0; left: 0; z-index: 0; pointer-events: none; }
   .daytip {
-    position: fixed; z-index: 5; pointer-events: none;
+    position: absolute; z-index: 5; pointer-events: none;
     padding: 4px 8px; border-radius: 6px;
     background: var(--ink); color: var(--bg);
     font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 400;
@@ -614,7 +615,7 @@
   (function () {
     var cv = document.querySelector('.days'), tip = document.querySelector('.daytip');
     if (!cv || !cv.getContext) return;
-    var ctx = cv.getContext('2d'), root = document.documentElement;
+    var ctx = cv.getContext('2d'), root = document.documentElement, main = document.querySelector('main');
     var DAY = 864e5, BIRTH_Y = 2008, BIRTH_M = 7, BIRTH_D = 1;            // 08/01/2008
     var START = Date.UTC(BIRTH_Y + 11, BIRTH_M, BIRTH_D);                 // 11th birthday
     var p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: 'numeric', day: 'numeric' })
@@ -643,81 +644,79 @@
       return y;
     }
     var fmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-
     var cutAge = 18, cutoff = N, hover = -1, ring = -1;
     function cutoffFor(a) { return a >= 18 ? N : Math.round((Date.UTC(BIRTH_Y + a + 1, BIRTH_M, BIRTH_D) - START) / DAY); }
 
-    // on wide screens the days live in the side margins only, so text stays clean
+    // one even grid across the whole page. on wide screens the days fill the side margins,
+    // and the grid carries on faintly behind the text so there's no empty band.
     var column = document.querySelector('main header');
-    var s = 22, cols = 1, xs = [], wide = false, W = 0, H = 0, dpr = 1;
-    function columnsFor(step) {
-      var out = [];
-      if (wide) {
-        var cr = column.getBoundingClientRect(), L = cr.left - 28, R = cr.right + 28;
-        for (var x = L - step / 2; x >= step / 2; x -= step) out.unshift(x);
-        for (var y = R + step / 2; y <= W - step / 2; y += step) out.push(y);
-      } else {
-        var n = Math.floor(W / step), off = (W - n * step) / 2;
-        for (var k = 0; k < n; k++) out.push(off + k * step + step / 2);
+    var s = 22, xs = [], mid = [], cols = 1, wide = false, W = 0, D = 0, dpr = 1;
+    var fitW = 0, fitD = 0;
+    function grid(step) {
+      var n = Math.floor(W / step), off = (W - n * step) / 2, side = [], centre = [];
+      var cr = column.getBoundingClientRect(), L = cr.left - 28, R = cr.right + 28;
+      for (var k = 0; k < n; k++) {
+        var x = off + k * step + step / 2;
+        if (!wide || x < L || x > R) side.push(x); else centre.push(x);
       }
-      return out;
+      return { side: side, centre: centre };
     }
+    function pageHeight() { return Math.max(Math.ceil(main.getBoundingClientRect().bottom + window.scrollY), window.innerHeight); }
     function layout() {
-      W = window.innerWidth; H = window.innerHeight; dpr = Math.min(2, window.devicePixelRatio || 1);
-      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
-      cv.style.width = W + 'px'; cv.style.height = H + 'px';
-      wide = W >= 760;
-      var docH = Math.max(document.documentElement.scrollHeight, H);
-      s = 22; xs = columnsFor(s);
-      while (s > 10 && xs.length * Math.floor(docH / s) < N) { s--; xs = columnsFor(s); }  // every lived day must fit
-      cols = Math.max(1, xs.length);
+      W = document.documentElement.clientWidth; D = pageHeight(); wide = W >= 760;
+      // size the grid for the tallest the page gets at this width, so the slider never changes the spacing
+      if (W !== fitW) { fitW = W; fitD = D; } else fitD = Math.max(fitD, D);
+      s = 22; var g = grid(s);
+      while (s > 10 && g.side.length * Math.floor(fitD / s) < N) { s--; g = grid(s); }   // every lived day must fit
+      xs = g.side; mid = g.centre; cols = Math.max(1, xs.length);
+      dpr = Math.min(2, window.devicePixelRatio || 1, Math.sqrt(14e6 / (W * D)));   // keep the canvas a safe size
+      cv.width = Math.round(W * dpr); cv.height = Math.round(D * dpr);
+      cv.style.width = W + 'px'; cv.style.height = D + 'px';
     }
     function v(n) { return getComputedStyle(root).getPropertyValue(n).trim(); }
-    function pos(i) { return { x: xs[i % cols], y: Math.floor(i / cols) * s + s / 2 - window.scrollY }; }
+    function pos(i) { return { x: xs[i % cols], y: Math.floor(i / cols) * s + s / 2 }; }
 
+    function marker(q, acc, big) {
+      ctx.strokeStyle = acc; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(q.x, q.y, big ? 6 : (wide ? 4.2 : 3.2), 0, 6.283); ctx.stroke();
+      ctx.beginPath(); ctx.arc(q.x, q.y, big ? 2.4 : 1.5, 0, 6.283); ctx.fillStyle = acc; ctx.fill();
+    }
     var queued = false;
     function draw() {
       queued = false;
       var past = v('--dot-past'), fut = v('--dot-future'), acc = v('--accent');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, W, H);
-      var sy = window.scrollY, docH = document.documentElement.scrollHeight;
-      var rows = Math.ceil(docH / s);
-      var r0 = Math.max(0, Math.floor(sy / s) - 1), r1 = Math.min(rows - 1, Math.ceil((sy + H) / s) + 1);
-      var pPast = new Path2D(), pFut = new Path2D(), pMs = new Path2D();
-      for (var r = r0; r <= r1; r++) {
+      ctx.clearRect(0, 0, W, D);
+      var rows = Math.floor(D / s), pPast = new Path2D(), pFut = new Path2D(), marks = [];
+      for (var r = 0; r < rows; r++) {
+        var y = r * s + s / 2;
         for (var c = 0; c < cols; c++) {
-          var i = r * cols + c, x = xs[c], y = r * s + s / 2 - sy, mr = wide ? 2.6 : 1.6;
+          var i = r * cols + c, x = xs[c];
           if (i < cutoff) {
             var m = msAt[i];
-            if (m && m.age <= cutAge) { pMs.moveTo(x + mr, y); pMs.arc(x, y, mr, 0, 6.283); }
+            if (m && m.age <= cutAge) marks.push(i);
             else { pPast.moveTo(x + 1.15, y); pPast.arc(x, y, 1.15, 0, 6.283); }
           } else { pFut.moveTo(x + 1, y); pFut.arc(x, y, 1, 0, 6.283); }
         }
+        for (var k = 0; k < mid.length; k++) { pFut.moveTo(mid[k] + 1, y); pFut.arc(mid[k], y, 1, 0, 6.283); }
       }
       ctx.fillStyle = fut; ctx.fill(pFut);
       ctx.fillStyle = past; ctx.fill(pPast);
-      ctx.fillStyle = acc; ctx.fill(pMs);
-      ctx.strokeStyle = acc; ctx.lineWidth = 1.2;
-      if (cutoff === N) { var t = pos(N - 1); ctx.globalAlpha = .45; ctx.beginPath(); ctx.arc(t.x, t.y, 5.5, 0, 6.283); ctx.stroke(); ctx.globalAlpha = 1; }
-      [hover, ring].forEach(function (i) {
-        if (i < 0) return; var q = pos(i);
-        ctx.beginPath(); ctx.arc(q.x, q.y, 6, 0, 6.283); ctx.stroke();
-        ctx.beginPath(); ctx.arc(q.x, q.y, 2.6, 0, 6.283); ctx.fillStyle = acc; ctx.fill();
-      });
+      marks.forEach(function (i) { marker(pos(i), acc, false); });
+      [hover, ring].forEach(function (i) { if (i >= 0 && i < cols * rows) marker(pos(i), acc, true); });
     }
     function redraw() { if (!queued) { queued = true; requestAnimationFrame(draw); } }
+    function relayout() { layout(); redraw(); }
 
     // hover a dot in the margins to see which day it is (mouse only)
     window.addEventListener('pointermove', function (e) {
       if (e.pointerType !== 'mouse' || !document.querySelector('.r11').hidden) return;
       var cr = column.getBoundingClientRect();
-      var inColumn = e.clientX > cr.left - 28 && e.clientX < cr.right + 28;
+      var inColumn = wide ? (e.clientX > cr.left - 28 && e.clientX < cr.right + 28) : true;
       var c = -1;
       for (var k = 0; k < cols; k++) if (Math.abs(xs[k] - e.clientX) <= s * .45) { c = k; break; }
-      var r = Math.round((e.clientY + window.scrollY - s / 2) / s);
-      var i = r * cols + c, q = (c >= 0 && r >= 0) ? pos(i) : null;
-      var near = q && Math.abs(q.x - e.clientX) <= s * .45 && Math.abs(q.y - e.clientY) <= s * .45;
+      var r = Math.round((e.pageY - s / 2) / s), i = r * cols + c, q = (c >= 0 && r >= 0) ? pos(i) : null;
+      var near = q && Math.abs(q.y - e.pageY) <= s * .45;
       if (inColumn || !near) { if (hover !== -1) { hover = -1; tip.classList.remove('on'); redraw(); } return; }
       if (i === hover) return;
       hover = i;
@@ -743,12 +742,16 @@
 
     window.__days = { setAge: function (a) { cutAge = a; cutoff = cutoffFor(a); redraw(); }, redraw: redraw };
     layout(); draw();
-    window.addEventListener('scroll', redraw, { passive: true });
-    window.addEventListener('resize', function () { layout(); redraw(); });
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { layout(); redraw(); });
+    var lastW = W, lastD = D;
+    function maybeRelayout() {
+      var w = document.documentElement.clientWidth, d = pageHeight();
+      if (w !== lastW || Math.abs(d - lastD) > 2) { lastW = w; lastD = d; relayout(); }
+    }
+    window.addEventListener('resize', maybeRelayout);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
+    if ('ResizeObserver' in window) new ResizeObserver(maybeRelayout).observe(main);
     new MutationObserver(function () { redraw(); setTimeout(redraw, 60); }).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-era'] });
     if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
-    if ('ResizeObserver' in window) new ResizeObserver(redraw).observe(document.body);
   })();
 
   // drag to grow up
