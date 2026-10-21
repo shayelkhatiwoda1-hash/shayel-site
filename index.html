@@ -31,10 +31,9 @@
     --rule: #e3e3e3;
     --line: #d6d6d6;
     --dot: #e4e4e4;
-    --dot-lit: #8c8c8c;
+    --dot-past: #d0d0d0;
+    --dot-future: #eeeeee;
     --accent: #2346d8;
-    --mx: -999px;
-    --my: -999px;
     color-scheme: light dark;
   }
   :root[data-theme="light"] { color-scheme: light; }
@@ -46,7 +45,8 @@
     --rule: #2a2a2b;
     --line: #3a3a3b;
     --dot: #1f1f21;
-    --dot-lit: #5c5c60;
+    --dot-past: #34343a;
+    --dot-future: #1a1a1d;
     --accent: #7f9bff;
   }
   @media (prefers-color-scheme: dark) {
@@ -56,9 +56,10 @@
       --muted: #a3a3a0;
       --rule: #2a2a2b;
       --line: #3a3a3b;
-      --dot: #1f1f21;
-      --dot-lit: #5c5c60;
-      --accent: #7f9bff;
+    --dot: #1f1f21;
+    --dot-past: #34343a;
+    --dot-future: #1a1a1d;
+    --accent: #7f9bff;
     }
   }
   * { box-sizing: border-box; }
@@ -72,6 +73,7 @@
     background-size: 22px 22px;
     background-attachment: fixed;
     color: var(--ink);
+    transition: background-color .45s ease, color .45s ease;
     font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
     font-size: 15px;
     line-height: 1.65;
@@ -91,25 +93,19 @@
   a:hover, a:focus-visible { color: var(--accent); }
   a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
 
-  /* cursor spotlight on the dot grid (desktop only) */
-  .spot {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    background-image: radial-gradient(var(--dot-lit) 1.1px, transparent 1.4px);
-    background-size: 22px 22px;
-    /* spotlight circle, intersected with a band that hides the text column */
-    -webkit-mask-image:
-      radial-gradient(200px circle at var(--mx) var(--my), #000 0%, transparent 70%),
-      linear-gradient(to right, #000 calc(50% - 360px), transparent calc(50% - 310px), transparent calc(50% + 310px), #000 calc(50% + 360px));
-    -webkit-mask-composite: source-in;
-            mask-image:
-      radial-gradient(200px circle at var(--mx) var(--my), #000 0%, transparent 70%),
-      linear-gradient(to right, #000 calc(50% - 360px), transparent calc(50% - 310px), transparent calc(50% + 310px), #000 calc(50% + 360px));
-            mask-composite: intersect;
+  /* every dot is a day since age 11 (drawn on a canvas when JS runs) */
+  .js body { background-image: none; }
+  .days { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .daytip {
+    position: fixed; z-index: 5; pointer-events: none;
+    padding: 4px 8px; border-radius: 6px;
+    background: var(--ink); color: var(--bg);
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 400;
+    font-size: 12px; line-height: 1.4; white-space: nowrap;
+    opacity: 0; transform: translate(-50%, calc(-100% - 10px));
+    transition: opacity .12s ease;
   }
-  @media (hover: none) { .spot { display: none; } }
+  .daytip.on { opacity: 1; }
 
   main {
     position: relative;
@@ -302,6 +298,147 @@
   .book:hover { color: var(--accent); text-decoration-color: currentColor; }
   .book:hover span { transform: translateX(4px); }
 
+  /* top-right tools */
+  .tools { display: flex; align-items: center; gap: 4px; margin: -12px -10px -12px 0; }
+  .tools .theme { margin: 0; }
+  .rw {
+    min-height: 44px; padding: 0 8px;
+    background: none; border: 0; font: inherit; font-size: 13px;
+    color: var(--muted); cursor: pointer; transition: color .15s;
+  }
+  .rw:hover { color: var(--accent); }
+  .rw:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: 4px; }
+
+  /* drag to grow up */
+  .grow { display: flex; flex-direction: column; gap: 6px; margin-bottom: -24px; }
+  .grow-row { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .grow-val { color: var(--accent); }
+  .grow input {
+    -webkit-appearance: none; appearance: none;
+    flex: 1 1 auto; min-width: 0; height: 44px; margin: 0;
+    background: transparent; cursor: pointer;
+  }
+  .grow input::-webkit-slider-runnable-track { height: 1px; background: var(--line); }
+  .grow input::-moz-range-track { height: 1px; background: var(--line); }
+  .grow input::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px; margin-top: -7.5px;
+    border-radius: 50%; background: var(--accent); border: 3px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .grow input::-moz-range-thumb {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent); border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--accent);
+  }
+  .grow input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  .go11 {
+    align-self: flex-start; min-height: 32px; padding: 0;
+    background: none; border: 0; font: inherit; font-size: 13px;
+    color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+  }
+  li.later, .ideas.later { display: none; }
+  .js ol.settled li, .js ol.settled li::before { animation-delay: 0s; animation-duration: .5s; }
+
+  /* fine print */
+  .fine { gap: 10px; font-size: 13px; color: var(--muted); }
+  .fine p { margin: 0; }
+  .linkbtn {
+    padding: 0; background: none; border: 0; font: inherit; color: var(--ink);
+    text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+  }
+  .linkbtn:hover { color: var(--accent); }
+  .watch { font-variant-numeric: tabular-nums; }
+
+  /* ---------- eras: the page's style at each age ---------- */
+  :root[data-era="kid"] {
+    color-scheme: light;
+    --bg: #fffbea; --ink: #2a1460; --muted: #6b4fa0; --rule: #f3d36b;
+    --line: #ffb3d9; --accent: #e0207f; --dot-past: #f6c6df; --dot-future: #fbeaf2;
+  }
+  :root[data-era="kid"] body,
+  :root[data-era="kid"] h1,
+  :root[data-era="kid"] .age { font-family: "Comic Neue", "Comic Sans MS", cursive; font-weight: 700; }
+  :root[data-era="kid"] h1 em {
+    background: linear-gradient(90deg, #ff2e93, #ff9a00, #1fbf00, #00a2ff, #a100ff);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  :root[data-era="kid"] .age { font-style: normal; font-size: 32px; transform: rotate(-5deg); transform-origin: left center; }
+  :root[data-era="yt"] {
+    color-scheme: light;
+    --bg: #ffffff; --ink: #0f0f0f; --muted: #606060; --rule: #e5e5e5;
+    --line: #e5e5e5; --accent: #e00027; --dot-past: #e4e4e4; --dot-future: #f5f5f5;
+  }
+  :root[data-era="yt"] h1 { font-family: "Archivo Black", Impact, sans-serif; text-transform: uppercase; font-size: 32px; letter-spacing: -.01em; }
+  :root[data-era="yt"] h1 em { font-style: normal; }
+  :root[data-era="yt"] .age { font-family: "Archivo Black", Impact, sans-serif; font-style: normal; }
+  :root[data-era="yt"] a { text-decoration-thickness: 3px; text-decoration-color: var(--accent); }
+  :root[data-era="teen"] { --accent: #7a63ff; }
+  :root[data-era="teen"] .age { font-family: "IBM Plex Mono", monospace; font-style: normal; font-weight: 500; font-size: 24px; }
+
+  /* ---------- rewind to 11 ---------- */
+  .r11 {
+    position: fixed; inset: 0; z-index: 50; overflow-y: auto;
+    padding: 84px 16px 96px; text-align: center;
+    color: #ffff3b; font-family: "Comic Neue", "Comic Sans MS", cursive; font-weight: 700; font-size: 18px; line-height: 1.5;
+    background:
+      radial-gradient(#ffffff 1px, transparent 1.6px) 0 0 / 38px 38px,
+      radial-gradient(#fff6a8 1px, transparent 1.6px) 19px 23px / 61px 61px,
+      linear-gradient(#000058, #2b0060);
+  }
+  .r11[hidden] { display: none; }
+  .r-back {
+    position: fixed; top: 12px; right: 12px; z-index: 52;
+    min-height: 44px; padding: 0 14px; border-radius: 999px;
+    background: #ffffff; color: #111; border: 0;
+    font: 500 13px "IBM Plex Mono", ui-monospace, monospace; cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,.35);
+  }
+  .r-back:focus-visible { outline: 3px solid #ffff3b; outline-offset: 2px; }
+  .r-glit { position: fixed; inset: 0; z-index: 51; pointer-events: none; }
+  .r-glit i { position: absolute; font-style: normal; animation: twinkle 1.6s ease-in-out infinite; }
+  .r-marq { overflow: hidden; margin: 0 -16px 28px; background: #ffff3b; color: #e0001b; white-space: nowrap; padding: 6px 0; }
+  .r-marq span { display: inline-block; padding-left: 100%; animation: marq 16s linear infinite; }
+  .r-word {
+    margin: 0 auto 8px; max-width: 760px;
+    font-size: clamp(34px, 8.5vw, 72px); line-height: 1.05; letter-spacing: -.01em;
+    background: linear-gradient(90deg, #ff004c, #ff9a00, #ffe600, #2bd800, #00b7ff, #a100ff, #ff004c);
+    background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    -webkit-text-stroke: 1.5px #ffffff;
+    filter: drop-shadow(4px 4px 0 #000);
+    transform: perspective(320px) rotateX(14deg);
+    animation: rainbow 4s linear infinite;
+  }
+  .r-uc {
+    max-width: 560px; margin: 24px auto; padding: 10px;
+    background: repeating-linear-gradient(-45deg, #ffd400 0 16px, #111 16px 32px);
+  }
+  .r-uc span { display: inline-block; background: #111; color: #ffd400; padding: 4px 12px; letter-spacing: .05em; }
+  .r-box {
+    max-width: 560px; margin: 24px auto; padding: 18px 20px; text-align: left;
+    background: #ffffff; color: #111; border: 5px ridge #c0c0c0;
+  }
+  .r-box h2 { margin: 0 0 8px; font-size: 22px; color: #e0001b; text-decoration: underline; }
+  .r-box ol { margin: 0; padding-left: 24px; display: block; list-style: decimal; }
+  .r-box ol::before { display: none; }
+  .r-box li { display: list-item; animation: none; margin: 4px 0; }
+  .r-box li::before { display: none; }
+  .r-later { display: block; margin-top: 2px; font: 400 12px/1.5 "IBM Plex Mono", ui-monospace, monospace; color: #2346d8; }
+  .r-vr { margin: 28px 0; font-size: clamp(26px, 6vw, 40px); color: #ffd700; text-shadow: 0 0 12px #ff9a00, 3px 3px 0 #7a3b00; animation: bounce 1s ease-in-out infinite; }
+  .r-vr small { display: block; font-size: 15px; color: #fff; text-shadow: none; }
+  .r-btn {
+    display: inline-block; margin: 8px 0 24px; padding: 10px 18px;
+    background: linear-gradient(#7dff6b, #18b700); color: #000; text-decoration: none;
+    border: 4px outset #b6ffad; font-size: 20px; animation: blink 1.1s steps(2, start) infinite;
+  }
+  .r-count { display: inline-flex; gap: 3px; margin: 6px 0; }
+  .r-count b { display: inline-block; width: 22px; padding: 2px 0; background: #000; color: #39ff14; font: 700 18px ui-monospace, monospace; border: 1px solid #555; }
+  .r-small { font-size: 14px; color: #fff; font-weight: 400; }
+  @keyframes marq { to { transform: translateX(-100%); } }
+  @keyframes rainbow { to { background-position: 200% 0; } }
+  @keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(90deg); } }
+  @keyframes bounce { 50% { transform: translateY(-8px) rotate(-2deg); } }
+  @keyframes blink { to { visibility: hidden; } }
+
   @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
   @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
   @keyframes pop  { 0% { scale: 0; } 70% { scale: 1.4; } 100% { scale: 1; } }
@@ -329,40 +466,66 @@
     .js .sig text { fill-opacity: 1; stroke-dashoffset: 0; animation: none; }
     .rot { transition: none; }
     .js .ideas { opacity: 1; transform: none; transition: none; }
+    body { transition: none; }
+    .r-marq span, .r-word, .r-glit i, .r-vr, .r-btn { animation: none; }
+    .r-marq span { padding-left: 0; }
   }
 </style>
 </head>
 <body>
-<div class="spot" aria-hidden="true"></div>
+<canvas class="days" aria-hidden="true"></canvas>
+<div class="daytip" aria-hidden="true"></div>
 <main>
 
   <header>
     <div class="topline">
       <div class="label">shayel khatiwoda</div>
+      <div class="tools">
+      <button class="rw" type="button" aria-label="Rewind this site to the version 11-year-old me would have made" title="rewind to 11">↺ 11</button>
       <button class="theme" type="button" aria-label="Switch light or dark theme" title="switch theme"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg></button>
+      </div>
     </div>
-    <h1 class="serif">stuff i've done since <em class="note" tabindex="0">eleven</em>.</h1>
+    <h1 class="serif" id="hl">stuff i've done since <em class="note" tabindex="0">eleven</em>.</h1>
+    <script>
+      // headline a/b test: each visitor gets one of two, and keeps it
+      (function () {
+        var v; try { v = localStorage.getItem('hl'); } catch (e) {}
+        if (v !== 'a' && v !== 'b') { v = Math.random() < .5 ? 'a' : 'b'; try { localStorage.setItem('hl', v); } catch (e) {} }
+        window.__hl = v;
+        if (v === 'b') document.getElementById('hl').innerHTML = "i started at <em class=\"note\" tabindex=\"0\">eleven</em>. here's what happened.";
+      })();
+    </script>
     <div class="now"><i aria-hidden="true"></i><span>currently: <span class="rot" aria-live="off">building agentic software for creators</span></span></div>
   </header>
 
+  <div class="grow">
+    <label class="label" for="age">drag to grow up · <span class="grow-val">age 18, now</span></label>
+    <div class="grow-row">
+      <span aria-hidden="true">11</span>
+      <input id="age" type="range" min="11" max="18" step="1" value="18" aria-valuetext="age 18, now">
+      <span aria-hidden="true">18</span>
+    </div>
+    <button class="go11" type="button" hidden>this is the mild version. go full 11 →</button>
+  </div>
+
   <ol>
-    <li>
+    <li data-age="11">
       <div class="age serif">11</div>
       <div>won my first fortnite game.</div>
     </li>
-    <li>
+    <li data-age="15">
       <div class="age serif">15</div>
       <div>got <span class="num" data-count="1600000">1,600,000</span> subscribers on <a href="https://www.youtube.com/@sh4yel" target="_blank" rel="noopener">youtube ↗</a> in a single month.</div>
     </li>
-    <li>
+    <li data-age="16">
       <div class="age serif">16</div>
       <div>ideated and scripted for a channel network doing $10m+ a year. interned at <a href="https://www.baobabstudios.com/" target="_blank" rel="noopener">baobab studios ↗</a>, a 10x emmy-winning studio.</div>
     </li>
-    <li>
+    <li data-age="17">
       <div class="age serif">17</div>
       <div>ran ideation, built workflow pipelines with ai tools, and developed the entire backend of a multi-channel network.</div>
     </li>
-    <li class="current">
+    <li class="current" data-age="18">
       <div class="age serif">18 <span>→ now</span></div>
       <div>ideating for one of the biggest creators in the world, and building agentic software for creators.</div>
     </li>
@@ -398,27 +561,281 @@
     <a class="book" href="https://calendly.com/shayelkhatiwoda1/30min" target="_blank" rel="noopener">or grab 15 min on my calendar <span aria-hidden="true">→</span></a>
   </section>
 
+  <section class="fine">
+    <div class="label">fine print</div>
+    <p>every dot in the background is a day since i turned 11 — <span data-days>2,639</span> so far. the bright ones are days from the timeline. the faint ones haven't happened yet.</p>
+    <p>you're seeing headline <span data-hlname>a</span> of 2. half of visitors get the other one — it's a thumbnail test. <button class="linkbtn swap" type="button">see the other one</button></p>
+    <p class="watch" aria-live="off">you've been here 0:00. still in the hook.</p>
+  </section>
+
   <div class="end">
     <svg class="sig" viewBox="0 0 150 40" role="img" aria-label="— shayel"><text x="2" y="30">— shayel</text></svg>
     <div class="clock" aria-label="Shayel's local time"></div>
   </div>
 
 </main>
+
+<div class="r11" hidden role="dialog" aria-modal="true" aria-label="shayel's website, as made at age 11">
+  <button class="r-back" type="button">↻ back to 18</button>
+  <div class="r-glit" aria-hidden="true"></div>
+  <div class="r-marq"><span>★ WELCOME 2 MY WEBSITE!!! ★ sub 2 my youtube ★ i won a fortnite game ★ sign my guestbook (i dont have one) ★ thx 4 visiting!!! ★</span></div>
+  <div class="r-word">SHAYEL'S AWSOME WEBSITE</div>
+  <div class="r-uc"><span>!! UNDER CONSTRUCTION !!</span></div>
+  <div class="r-box">
+    <h2>about me</h2>
+    hi im shayel!!! im 11. i like fortnite and youtube. i made this website all by myself.
+  </div>
+  <div class="r-vr">★ #1 VICTORY ROYALE ★<small>(my first win!!! ok its my only win)</small></div>
+  <div class="r-box">
+    <h2>MY GOALS</h2>
+    <ol>
+      <li>get a million subs on youtube<span class="r-later">— note from 15-year-old me: did it. 1.6 million. in one month.</span></li>
+      <li>win more fortnite games</li>
+      <li>make a cool website<span class="r-later">— note from 18-year-old me: made a better one. hit the button up top.</span></li>
+    </ol>
+  </div>
+  <a class="r-btn" href="https://www.youtube.com/@sh4yel" target="_blank" rel="noopener">SUB 2 MY YOUTUBE!!!</a>
+  <div>visitors:</div>
+  <div class="r-count" aria-label="visitor 1"><b>0</b><b>0</b><b>0</b><b>0</b><b>0</b><b>1</b></div>
+  <div class="r-small">(its me. its always been me)</div>
+  <p class="r-small">best viewed in ur browser · © 2019 shayel</p>
+</div>
+
 <script>
-  // move the dot-grid spotlight with the cursor (desktop only)
+  // load the extra fonts only when an older era is shown
+  function loadEraFonts() {
+    if (window.__eraFonts) return; window.__eraFonts = true;
+    var l = document.createElement('link'); l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=Archivo+Black&family=Comic+Neue:wght@400;700&display=swap';
+    document.head.appendChild(l);
+  }
+
+  // every dot is a day since i turned 11 (aug 1, 2019)
   (function () {
-    if (!window.matchMedia || !matchMedia('(hover: hover)').matches) return;
-    var root = document.documentElement, x = -999, y = -999, queued = false;
-    function apply() {
-      queued = false;
-      root.style.setProperty('--mx', x + 'px');
-      root.style.setProperty('--my', y + 'px');
+    var cv = document.querySelector('.days'), tip = document.querySelector('.daytip');
+    if (!cv || !cv.getContext) return;
+    var ctx = cv.getContext('2d'), root = document.documentElement;
+    var DAY = 864e5, BIRTH_Y = 2008, BIRTH_M = 7, BIRTH_D = 1;            // 08/01/2008
+    var START = Date.UTC(BIRTH_Y + 11, BIRTH_M, BIRTH_D);                 // 11th birthday
+    var p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: 'numeric', day: 'numeric' })
+      .formatToParts(new Date()).reduce(function (o, x) { o[x.type] = +x.value; return o; }, {});
+    var TODAY = Date.UTC(p.year, p.month - 1, p.day);
+    var N = Math.round((TODAY - START) / DAY) + 1;                         // days lived since 11, incl. today
+    var countEl = document.querySelector('[data-days]');
+    if (countEl) countEl.textContent = N.toLocaleString('en-US');
+
+    // exact dates unknown, so each milestone sits mid-way through that year of age
+    var MS = [
+      { age: 11, t: 'won my first fortnite game' },
+      { age: 15, t: 'got 1.6m subs in one month' },
+      { age: 16, t: 'scripting for a $10m+/yr network · baobab studios' },
+      { age: 17, t: 'ran ideation, built ai pipelines + a network backend' },
+      { age: 18, t: 'now' }
+    ];
+    var msAt = {};
+    MS.forEach(function (m) {
+      m.i = m.age === 18 ? N - 1 : Math.round((Date.UTC(BIRTH_Y + m.age + 1, 1, 1) - START) / DAY);
+      msAt[m.i] = m;
+    });
+    function ageAt(t) {
+      var d = new Date(t), y = d.getUTCFullYear() - BIRTH_Y;
+      if (d.getUTCMonth() < BIRTH_M || (d.getUTCMonth() === BIRTH_M && d.getUTCDate() < BIRTH_D)) y--;
+      return y;
     }
+    var fmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+
+    var cutAge = 18, cutoff = N, hover = -1, ring = -1;
+    function cutoffFor(a) { return a >= 18 ? N : Math.round((Date.UTC(BIRTH_Y + a + 1, BIRTH_M, BIRTH_D) - START) / DAY); }
+
+    // on wide screens the days live in the side margins only, so text stays clean
+    var column = document.querySelector('main header');
+    var s = 22, cols = 1, xs = [], wide = false, W = 0, H = 0, dpr = 1;
+    function columnsFor(step) {
+      var out = [];
+      if (wide) {
+        var cr = column.getBoundingClientRect(), L = cr.left - 28, R = cr.right + 28;
+        for (var x = L - step / 2; x >= step / 2; x -= step) out.unshift(x);
+        for (var y = R + step / 2; y <= W - step / 2; y += step) out.push(y);
+      } else {
+        var n = Math.floor(W / step), off = (W - n * step) / 2;
+        for (var k = 0; k < n; k++) out.push(off + k * step + step / 2);
+      }
+      return out;
+    }
+    function layout() {
+      W = window.innerWidth; H = window.innerHeight; dpr = Math.min(2, window.devicePixelRatio || 1);
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      cv.style.width = W + 'px'; cv.style.height = H + 'px';
+      wide = W >= 760;
+      var docH = Math.max(document.documentElement.scrollHeight, H);
+      s = 22; xs = columnsFor(s);
+      while (s > 10 && xs.length * Math.floor(docH / s) < N) { s--; xs = columnsFor(s); }  // every lived day must fit
+      cols = Math.max(1, xs.length);
+    }
+    function v(n) { return getComputedStyle(root).getPropertyValue(n).trim(); }
+    function pos(i) { return { x: xs[i % cols], y: Math.floor(i / cols) * s + s / 2 - window.scrollY }; }
+
+    var queued = false;
+    function draw() {
+      queued = false;
+      var past = v('--dot-past'), fut = v('--dot-future'), acc = v('--accent');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      var sy = window.scrollY, docH = document.documentElement.scrollHeight;
+      var rows = Math.ceil(docH / s);
+      var r0 = Math.max(0, Math.floor(sy / s) - 1), r1 = Math.min(rows - 1, Math.ceil((sy + H) / s) + 1);
+      var pPast = new Path2D(), pFut = new Path2D(), pMs = new Path2D();
+      for (var r = r0; r <= r1; r++) {
+        for (var c = 0; c < cols; c++) {
+          var i = r * cols + c, x = xs[c], y = r * s + s / 2 - sy, mr = wide ? 2.6 : 1.6;
+          if (i < cutoff) {
+            var m = msAt[i];
+            if (m && m.age <= cutAge) { pMs.moveTo(x + mr, y); pMs.arc(x, y, mr, 0, 6.283); }
+            else { pPast.moveTo(x + 1.15, y); pPast.arc(x, y, 1.15, 0, 6.283); }
+          } else { pFut.moveTo(x + 1, y); pFut.arc(x, y, 1, 0, 6.283); }
+        }
+      }
+      ctx.fillStyle = fut; ctx.fill(pFut);
+      ctx.fillStyle = past; ctx.fill(pPast);
+      ctx.fillStyle = acc; ctx.fill(pMs);
+      ctx.strokeStyle = acc; ctx.lineWidth = 1.2;
+      if (cutoff === N) { var t = pos(N - 1); ctx.globalAlpha = .45; ctx.beginPath(); ctx.arc(t.x, t.y, 5.5, 0, 6.283); ctx.stroke(); ctx.globalAlpha = 1; }
+      [hover, ring].forEach(function (i) {
+        if (i < 0) return; var q = pos(i);
+        ctx.beginPath(); ctx.arc(q.x, q.y, 6, 0, 6.283); ctx.stroke();
+        ctx.beginPath(); ctx.arc(q.x, q.y, 2.6, 0, 6.283); ctx.fillStyle = acc; ctx.fill();
+      });
+    }
+    function redraw() { if (!queued) { queued = true; requestAnimationFrame(draw); } }
+
+    // hover a dot in the margins to see which day it is (mouse only)
     window.addEventListener('pointermove', function (e) {
-      x = e.clientX; y = e.clientY;
-      if (!queued) { queued = true; requestAnimationFrame(apply); }
+      if (e.pointerType !== 'mouse' || !document.querySelector('.r11').hidden) return;
+      var cr = column.getBoundingClientRect();
+      var inColumn = e.clientX > cr.left - 28 && e.clientX < cr.right + 28;
+      var c = -1;
+      for (var k = 0; k < cols; k++) if (Math.abs(xs[k] - e.clientX) <= s * .45) { c = k; break; }
+      var r = Math.round((e.clientY + window.scrollY - s / 2) / s);
+      var i = r * cols + c, q = (c >= 0 && r >= 0) ? pos(i) : null;
+      var near = q && Math.abs(q.x - e.clientX) <= s * .45 && Math.abs(q.y - e.clientY) <= s * .45;
+      if (inColumn || !near) { if (hover !== -1) { hover = -1; tip.classList.remove('on'); redraw(); } return; }
+      if (i === hover) return;
+      hover = i;
+      var t = START + i * DAY, m = msAt[i], label;
+      if (i >= cutoff && i < N) label = fmt.format(t).toLowerCase() + ' · age ' + ageAt(t) + ' · drag to grow up';
+      else if (i >= N) label = fmt.format(t).toLowerCase() + ' · hasn\'t happened yet';
+      else if (i === N - 1) label = 'today · day ' + N.toLocaleString('en-US') + ' since 11';
+      else if (m) label = 'sometime at ' + m.age + ' · ' + m.t;
+      else label = fmt.format(t).toLowerCase() + ' · age ' + ageAt(t) + ' · day ' + (i + 1).toLocaleString('en-US');
+      tip.textContent = label;
+      tip.style.left = q.x + 'px'; tip.style.top = q.y + 'px';
+      tip.classList.add('on');
+      redraw();
     }, { passive: true });
-    document.addEventListener('pointerleave', function () { x = y = -999; apply(); });
+    document.addEventListener('pointerleave', function () { hover = -1; tip.classList.remove('on'); redraw(); });
+
+    // hovering a timeline row rings its day
+    document.querySelectorAll('ol li[data-age]').forEach(function (li) {
+      var a = +li.getAttribute('data-age'), m = MS.filter(function (x) { return x.age === a; })[0];
+      li.addEventListener('pointerenter', function () { ring = m ? m.i : -1; redraw(); });
+      li.addEventListener('pointerleave', function () { ring = -1; redraw(); });
+    });
+
+    window.__days = { setAge: function (a) { cutAge = a; cutoff = cutoffFor(a); redraw(); }, redraw: redraw };
+    layout(); draw();
+    window.addEventListener('scroll', redraw, { passive: true });
+    window.addEventListener('resize', function () { layout(); redraw(); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { layout(); redraw(); });
+    new MutationObserver(function () { redraw(); setTimeout(redraw, 60); }).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-era'] });
+    if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+    if ('ResizeObserver' in window) new ResizeObserver(redraw).observe(document.body);
+  })();
+
+  // drag to grow up
+  (function () {
+    var input = document.getElementById('age'), root = document.documentElement;
+    if (!input) return;
+    var val = document.querySelector('.grow-val'), go11 = document.querySelector('.go11');
+    var rows = document.querySelectorAll('ol li[data-age]'), ideas = document.querySelector('.ideas');
+    function era(a) { return a <= 14 ? 'kid' : a === 15 ? 'yt' : a <= 17 ? 'teen' : 'now'; }
+    function set(a) {
+      if (a < 18) loadEraFonts();
+      if (window.__playTimeline) window.__playTimeline();
+      var e = era(a);
+      if (e === 'now') root.removeAttribute('data-era'); else root.setAttribute('data-era', e);
+      rows.forEach(function (li) { li.classList.toggle('later', +li.getAttribute('data-age') > a); });
+      if (ideas) { ideas.classList.toggle('later', a < 18); if (a === 18) ideas.classList.add('show'); }
+      val.textContent = a === 18 ? 'age 18, now' : 'age ' + a;
+      input.setAttribute('aria-valuetext', a === 18 ? 'age 18, now' : 'age ' + a);
+      go11.hidden = a !== 11;
+      if (window.__days) window.__days.setAge(a);
+    }
+    input.addEventListener('input', function () { set(+input.value); });
+    go11.addEventListener('click', function () { if (window.__rewind) window.__rewind(true); });
+  })();
+
+  // rewind to 11
+  (function () {
+    var page = document.querySelector('.r11'), open = document.querySelector('.rw');
+    if (!page || !open) return;
+    var back = page.querySelector('.r-back'), glit = page.querySelector('.r-glit'), title = document.title;
+    var colors = ['#ffffff', '#fff36b', '#ff7ad9', '#7af8ff', '#b6ff6b'];
+    function sparkle() {
+      if (glit.childElementCount) return;
+      for (var k = 0; k < 28; k++) {
+        var i = document.createElement('i');
+        i.textContent = k % 3 ? '✦' : '✧';
+        i.style.left = (Math.random() * 100) + '%';
+        i.style.top = (Math.random() * 100) + '%';
+        i.style.color = colors[k % colors.length];
+        i.style.fontSize = (10 + Math.random() * 18) + 'px';
+        i.style.animationDelay = (Math.random() * 1.6) + 's';
+        glit.appendChild(i);
+      }
+    }
+    function set(on) {
+      if (on) { loadEraFonts(); sparkle(); page.hidden = false; page.scrollTop = 0; document.body.style.overflow = 'hidden'; document.title = "SHAYEL'S AWSOME WEBSITE!!!"; back.focus(); }
+      else { page.hidden = true; document.body.style.overflow = ''; document.title = title; open.focus(); }
+    }
+    window.__rewind = set;
+    open.addEventListener('click', function () { set(true); });
+    back.addEventListener('click', function () { set(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !page.hidden) set(false); });
+  })();
+
+  // headline a/b: say which one they got, and let them peek at the other
+  (function () {
+    var name = document.querySelector('[data-hlname]'), btn = document.querySelector('.swap'), h = document.getElementById('hl');
+    if (!name || !h) return;
+    var A = "stuff i've done since <em class=\"note\" tabindex=\"0\">eleven</em>.";
+    var B = "i started at <em class=\"note\" tabindex=\"0\">eleven</em>. here's what happened.";
+    var showing = window.__hl === 'b' ? 'b' : 'a';
+    name.textContent = showing;
+    btn.addEventListener('click', function () {
+      showing = showing === 'a' ? 'b' : 'a';
+      h.innerHTML = showing === 'a' ? A : B;
+      btn.textContent = showing === window.__hl ? 'see the other one' : 'back to yours';
+    });
+  })();
+
+  // watch time
+  (function () {
+    var el = document.querySelector('.watch');
+    if (!el) return;
+    var sec = 0;
+    function line(t) {
+      if (t < 8) return 'still in the hook.';
+      if (t < 30) return 'you made it past the hook.';
+      if (t < 90) return "that's officially retained.";
+      if (t < 180) return 'at this point you should just email me.';
+      return "ok you're definitely a fan. hi.";
+    }
+    function render() {
+      var m = Math.floor(sec / 60), r = sec % 60;
+      el.textContent = "you've been here " + m + ':' + (r < 10 ? '0' : '') + r + '. ' + line(sec);
+    }
+    render();
+    setInterval(function () { if (!document.hidden) { sec++; render(); } }, 1000);
   })();
 
   // copy email
@@ -470,7 +887,7 @@
     var num = document.querySelector('[data-count]');
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!list) return;
-    if (reduce) { list.classList.add('go'); window.__timelineDone = true; return; }
+    if (reduce) { list.classList.add('go', 'settled'); window.__timelineDone = true; window.__playTimeline = function () {}; return; }
     var target = num ? +num.getAttribute('data-count') : 0;
     if (num) num.textContent = '0';
     function countUp() {
@@ -491,9 +908,11 @@
       setTimeout(countUp, 750); // just after the "15" row lands
       setTimeout(function () {
         window.__timelineDone = true;
+        list.classList.add('settled');
         window.dispatchEvent(new Event('timelinedone'));
       }, 3100);
     }
+    window.__playTimeline = function () { play(); list.classList.add('settled'); };
     var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
     var timeout = new Promise(function (r) { setTimeout(r, 1500); }); // don't wait forever on slow fonts
     Promise.race([fontsReady, timeout]).then(function () {
