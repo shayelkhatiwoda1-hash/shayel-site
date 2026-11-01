@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pricing | Fence</title>
+<meta name="description" content="Fence is an AI sales agent for your pricing page. Simple monthly or yearly plans.">
+<link rel="icon" href="fence-logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Placeholder plans: keep in sync with the "fence" fact sheet in scripts/seed.js. */
+  :root {
+    --brand: #2D5BFF;
+    --brand-dark: #1E44D6;
+    --brand-soft: #EEF2FF;
+    --ink: #0E1220;
+    --ink-2: #4A5168;
+    --muted: #8A90A6;
+    --line: #E6E8F0;
+    --bg: #FFFFFF;
+    --bg-2: #F7F8FC;
+    --good: #2D5BFF;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+
+  /* Header */
+  header { position: sticky; top: 0; z-index: 10; background: rgba(255,255,255,.85); backdrop-filter: saturate(180%) blur(12px); border-bottom: 1px solid transparent; }
+  header.scrolled { border-bottom-color: var(--line); }
+  .nav { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 19px; text-decoration: none; letter-spacing: -.01em; }
+  .brand img { width: 32px; height: 32px; }
+  .nav-links { display: flex; align-items: center; gap: 28px; font-size: 15px; color: var(--ink-2); }
+  .nav-links a { text-decoration: none; }
+  .nav-links a:hover { color: var(--ink); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 20px; border-radius: 999px; font: inherit; font-weight: 600; font-size: 15px; text-decoration: none; cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--ink); transition: transform .15s, box-shadow .15s, background .15s; }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(14,18,32,.08); }
+  .btn-primary { background: var(--brand); border-color: var(--brand); color: #fff; box-shadow: 0 6px 18px rgba(45,91,255,.28); }
+  .btn-primary:hover { background: var(--brand-dark); box-shadow: 0 10px 24px rgba(45,91,255,.35); }
+  .btn-block { width: 100%; }
+
+  /* Hero */
+  .hero { text-align: center; padding: 72px 0 36px; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--brand); background: var(--brand-soft); padding: 6px 12px; border-radius: 999px; }
+  h1 { font-size: clamp(36px, 6vw, 60px); line-height: 1.05; letter-spacing: -.035em; margin: 18px auto 16px; max-width: 820px; font-weight: 800; }
+  h1 span { color: var(--brand); }
+  .sub { font-size: 18px; color: var(--ink-2); max-width: 600px; margin: 0 auto; }
+
+  /* Billing toggle */
+  .toggle { display: inline-flex; margin-top: 32px; padding: 5px; border-radius: 999px; background: var(--bg-2); border: 1px solid var(--line); }
+  .toggle button { font: inherit; font-size: 15px; font-weight: 600; border: 0; background: transparent; color: var(--ink-2); padding: 9px 18px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+  .toggle button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(14,18,32,.12); }
+  .save { font-size: 12px; font-weight: 700; color: #fff; background: var(--brand); padding: 2px 8px; border-radius: 999px; }
+
+  /* Plan cards */
+  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; padding: 40px 0 24px; }
+  .card { position: relative; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 28px 26px; box-shadow: 0 1px 2px rgba(14,18,32,.04); }
+  .card.popular { border: 2px solid var(--brand); background: linear-gradient(180deg, var(--brand-soft) 0%, #fff 38%); box-shadow: 0 20px 50px rgba(45,91,255,.16); margin-top: -14px; padding-top: 44px; }
+  .badge { position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%); background: var(--brand); color: #fff; font-size: 13px; font-weight: 700; padding: 6px 14px; border-radius: 999px; white-space: nowrap; }
+  .card h3 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+  .card .for { margin: 6px 0 22px; color: var(--ink-2); font-size: 15px; min-height: 46px; }
+  .price-row { display: flex; align-items: baseline; gap: 10px; }
+  .was { color: var(--muted); text-decoration: line-through; font-size: 22px; font-weight: 600; }
+  .price { font-size: 48px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+  .per { color: var(--muted); font-size: 14px; margin: 8px 0 22px; min-height: 21px; }
+  .usage { margin: 24px 0 18px; padding: 14px 16px; border-radius: 12px; background: var(--bg-2); font-size: 15px; }
+  .usage strong { display: block; font-size: 16px; }
+  .usage span { color: var(--ink-2); }
+  .card.popular .usage { background: #fff; border: 1px solid #DCE3FF; }
+  ul.feats { list-style: none; margin: 0; padding: 0; display: grid; gap: 11px; font-size: 15px; }
+  ul.feats li { display: flex; gap: 10px; align-items: flex-start; }
+  ul.feats li.no { color: var(--muted); }
+  .ic { flex: none; width: 20px; height: 20px; margin-top: 1px; }
+
+  /* Trust strip */
+  .trust { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 28px; color: var(--ink-2); font-size: 14px; padding: 8px 0 40px; }
+  .trust div { display: flex; align-items: center; gap: 8px; }
+
+  /* Sections */
+  section.block { padding: 72px 0; }
+  section.alt { background: var(--bg-2); }
+  h2 { font-size: clamp(28px, 4vw, 40px); letter-spacing: -.03em; line-height: 1.1; margin: 0 0 10px; text-align: center; }
+  .lead { text-align: center; color: var(--ink-2); margin: 0 auto 40px; max-width: 560px; }
+
+  /* How it works */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .step { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; }
+  .step .n { width: 36px; height: 36px; border-radius: 10px; background: var(--brand-soft); color: var(--brand); font-weight: 800; display: grid; place-items: center; margin-bottom: 14px; }
+  .step h3 { margin: 0 0 6px; font-size: 18px; }
+  .step p { margin: 0; color: var(--ink-2); font-size: 15px; }
+  .step code { font-size: 13px; background: var(--bg-2); border: 1px solid var(--line); padding: 1px 6px; border-radius: 6px; }
+
+  /* Compare table */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
+  table { width: 100%; border-collapse: collapse; min-width: 640px; font-size: 15px; }
+  th, td { padding: 15px 18px; text-align: center; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { font-size: 17px; padding-top: 22px; padding-bottom: 22px; vertical-align: bottom; }
+  thead th small { display: block; font-weight: 500; color: var(--muted); font-size: 13px; margin-top: 2px; }
+  thead th.hl, td.hl { background: #F6F8FF; }
+  tr.group td { background: var(--bg-2); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 10px 18px; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td .ic { display: inline-block; vertical-align: middle; }
+
+  /* FAQ */
+  .faq { max-width: 760px; margin: 0 auto; display: grid; gap: 12px; }
+  details { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 0 22px; }
+  summary { list-style: none; cursor: pointer; padding: 18px 0; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; font-size: 22px; font-weight: 400; color: var(--muted); transition: transform .2s; }
+  details[open] summary::after { transform: rotate(45deg); }
+  details p { margin: 0 0 18px; color: var(--ink-2); }
+
+  /* Closing CTA */
+  .cta { margin: 0 auto; max-width: 1080px; border-radius: 28px; padding: 64px 28px; text-align: center; color: #fff; background: radial-gradient(120% 140% at 10% 0%, #5B80FF 0%, var(--brand) 45%, #1A35B8 100%); position: relative; overflow: hidden; }
+  .cta h2 { color: #fff; }
+  .cta p { color: rgba(255,255,255,.85); margin: 0 auto 28px; max-width: 520px; font-size: 17px; }
+  .cta .btn { background: #fff; color: var(--brand); border-color: #fff; }
+  .cta img { position: absolute; width: 220px; right: -30px; bottom: -40px; opacity: .14; filter: brightness(0) invert(1); }
+
+  footer { padding: 40px 0 56px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  footer .brand { font-size: 16px; color: var(--ink); }
+  footer .brand img { width: 24px; height: 24px; }
+
+  @media (max-width: 900px) {
+    .plans { grid-template-columns: 1fr; max-width: 460px; margin: 0 auto; gap: 28px; }
+    .card.popular { margin-top: 0; order: -1; }
+    .card .for { min-height: 0; }
+    .steps { grid-template-columns: 1fr; }
+    .nav-links a:not(.btn) { display: none; }
+  }
+  @media (max-width: 480px) {
+    .hero { padding-top: 48px; }
+    .sub { font-size: 16px; }
+    .toggle button { padding: 9px 14px; }
+    section.block { padding: 56px 0; }
+    .cta { border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header id="top">
+  <div class="wrap nav">
+    <a class="brand" href="#top"><img src="fence-logo.svg" alt="">Fence</a>
+    <nav class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#compare">Compare</a>
+      <a href="#faq">FAQ</a>
+      <a class="btn btn-primary" href="#plans">Get started</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <span class="eyebrow">AI sales agent for your pricing page</span>
+    <h1>Your pricing page, now with a <span>closer</span>.</h1>
+    <p class="sub">Fence asks visitors what they need, recommends the one plan that fits, answers questions from your own facts, and walks them to checkout. Cancel anytime.</p>
+    <div class="toggle" role="group" aria-label="Billing period">
+      <button type="button" data-period="monthly" aria-pressed="false">Monthly</button>
+      <button type="button" data-period="yearly" aria-pressed="true">Yearly <span class="save">Save 17%</span></button>
+    </div>
+  </div>
+
+  <div class="wrap" id="plans">
+    <div class="plans">
+      <article class="card">
+        <h3>Starter</h3>
+        <p class="for">For founders trying an AI closer on one site.</p>
+        <div class="price-row"><span class="was" data-was="29"></span><span class="price" data-monthly="29" data-yearly="24">$24</span></div>
+        <p class="per" data-yearly-note="per month, billed $288 yearly" data-monthly-note="per month">per month, billed $288 yearly</p>
+        <a class="btn btn-block" href="#plans">Start with Starter</a>
+        <div class="usage"><strong>500 conversations/mo</strong><span>on 1 website</span></div>
+        <ul class="feats">
+          <li><svg class="ic"><use href="#yes"/></svg>Recommends one plan, with a checkout button</li>
+          <li><svg class="ic"><use href="#yes"/></svg>Insight log of pains, objections and questions</li>
+          <li><svg class="ic"><use href="#yes"/></svg>Checkout click tracking</li>
+          <li><svg class="ic"><use href="#yes"/></svg>Domain lock</li>
+          <li class="no"><svg class="ic"><use href="#no"/></svg>Self-learning sales playbook</li>
+          <li class="no"><svg class="ic"><use href="#no"/></svg>Remove Fence branding</li>
+        </ul>
+      </article>
+
+      <article class="card popular">
+        <span class="badge">Most popular</span>
+        <h3>Growth</h3>
+        <p class="for">For growing products that want the agent to get better every week.</p>
+        <div class="price-row"><span class="was" data-was="79"></span><span class="price" data-monthly="79" data-yearly="66">$66</span></div>
+        <p class="per" data-yearly-note="per month, billed $792 yearly" data-monthly-note="per month">per month, billed $792 yearly</p>
+        <a class="btn btn-primary btn-block" href="#plans">Start with Growth</a>
+        <div class="usage"><strong>2,500 conversations/mo</strong><span>across 3 websites</span></div>
+        <ul class="feats">
+          <li><svg class="ic"><use href="#yes"/></svg>Everything in Starter</li>
+          <li><svg class="ic"><use href="#yes"/></svg>Self-learning sales playbook</li>
+          <li><svg class="ic"><use href="#yes"/></svg>Remove Fence branding</li>
+          <li><svg class="ic"><use href="#yes"/></svg>3 websites</li>
+          <li class="no"><svg class="ic"><use href="#no"/></svg>Priority email support</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h3>Scale</h3>
+        <p class="for">For high-traffic teams and agencies running several sites.</p>
+        <div class="price-row"><span class="was" data-was="199"></span><span class="price" data-monthly="199" data-yearly="166">$166</span></div>
+        <p class="per" data-yearly-note="per month, billed $1,992 yearly" data-monthly-note="per month">per month, billed $1,992 yearly</p>
+        <a class="btn btn-block" href="#plans">Start with Scale</a>
+        <div class="usage"><strong>10,000 conversations/mo</strong><span>across 10 websites</span></div>
+        <ul class="feats">
+          <li><svg class="ic"><use href="#yes"/></svg>Everything in Growth</li>
+          <li><svg class="ic"><use href="#yes"/></svg>10 websites</li>
+          <li><svg class="ic"><use href="#yes"/></svg>Priority email support</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="trust">
+      <div><svg class="ic"><use href="#yes"/></svg>Cancel anytime</div>
+      <div><svg class="ic"><use href="#yes"/></svg>One line of code to install</div>
+      <div><svg class="ic"><use href="#yes"/></svg>Never invents prices or features</div>
+    </div>
+  </div>
+
+  <section class="block alt" id="how">
+    <div class="wrap">
+      <h2>Live on your pricing page in minutes</h2>
+      <p class="lead">No sales team needed. Fence works from your plans and facts, and learns from every chat.</p>
+      <div class="steps">
+        <div class="step"><div class="n">1</div><h3>Add your plans and facts</h3><p>List your plans, prices and policies once. That fact sheet is the only thing the agent will ever quote.</p></div>
+        <div class="step"><div class="n">2</div><h3>Paste one script tag</h3><p>Add <code>&lt;script src=".../widget.js"&gt;</code> to your pricing page. A chat bubble appears in the corner.</p></div>
+        <div class="step"><div class="n">3</div><h3>Watch it close, and learn</h3><p>It finds each visitor's need, pitches one plan, and studies won and lost chats to sharpen its pitch.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="compare">
+    <div class="wrap">
+      <h2>Compare plans</h2>
+      <p class="lead">Every plan includes the full AI sales agent. Bigger plans add sites, volume and learning.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Starter<small class="tp" data-monthly="$29/mo" data-yearly="$24/mo yearly">$24/mo yearly</small></th>
+              <th class="hl">Growth<small class="tp" data-monthly="$79/mo" data-yearly="$66/mo yearly">$66/mo yearly</small></th>
+              <th>Scale<small class="tp" data-monthly="$199/mo" data-yearly="$166/mo yearly">$166/mo yearly</small></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="group"><td colspan="4">Usage</td></tr>
+            <tr><td>Websites</td><td>1</td><td class="hl">3</td><td>10</td></tr>
+            <tr><td>AI conversations a month</td><td>500</td><td class="hl">2,500</td><td>10,000</td></tr>
+            <tr><td>Visitor messages per conversation</td><td>20</td><td class="hl">20</td><td>20</td></tr>
+            <tr class="group"><td colspan="4">Selling</td></tr>
+            <tr><td>Finds the visitor's need first</td><td><svg class="ic"><use href="#yes"/></svg></td><td class="hl"><svg class="ic"><use href="#yes"/></svg></td><td><svg class="ic"><use href="#yes"/></svg></td></tr>
+            <tr><td>Recommends one plan with a checkout button</td><td><svg class="ic"><use href="#yes"/></svg></td><td class="hl"><svg class="ic"><use href="#yes"/></svg></td><td><svg class="ic"><use href="#yes"/></svg></td></tr>
+            <tr><td>Answers only from your fact sheet</td><td><svg class="ic"><use href="#yes"/></svg></td><td class="hl"><svg class="ic"><use href="#yes"/></svg></td><td><svg class="ic"><use href="#yes"/></svg></td></tr>
+            <tr><td>Self-learning sales playbook</td><td><svg class="ic"><use href="#no"/></svg></td><td class="hl"><svg class="ic"><use href="#yes"/></svg></td><td><svg class="ic"><use href="#yes"/></svg></td></tr>
+            <tr class="group"><td colspan="4">Insights</td></tr>
+            <tr><td>Insight log (pains, objections, missing features, questions)</td><td><svg class="ic"><use href="#yes"/></svg></td><td class="hl"><svg class="ic"><use href="#yes"/></svg></td><td><svg class="ic"><use href="#yes"/></svg></td></tr>
+            <tr><td>Checkout click tracking</td><td><svg class="ic"><use href="#yes"/></svg></td><td class="hl"><svg class="ic"><use href="#yes"/></svg></td><td><svg class="ic"><use href="#yes"/></svg></td></tr>
+            <tr class="group"><td colspan="4">Brand and support</td></tr>
+            <tr><td>Domain lock</td><td><svg class="ic"><use href="#yes"/></svg></td><td class="hl"><svg class="ic"><use href="#yes"/></svg></td><td><svg class="ic"><use href="#yes"/></svg></td></tr>
+            <tr><td>Remove Fence branding</td><td><svg class="ic"><use href="#no"/></svg></td><td class="hl"><svg class="ic"><use href="#yes"/></svg></td><td><svg class="ic"><use href="#yes"/></svg></td></tr>
+            <tr><td>Priority email support</td><td><svg class="ic"><use href="#no"/></svg></td><td class="hl"><svg class="ic"><use href="#no"/></svg></td><td><svg class="ic"><use href="#yes"/></svg></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="block alt" id="faq">
+    <div class="wrap">
+      <h2>Questions</h2>
+      <p class="lead">Still unsure? Ask the agent in the corner. It's Fence, selling Fence.</p>
+      <div class="faq">
+        <details><summary>What counts as a conversation?</summary><p>One visitor chat, up to 20 visitor messages. Unused conversations don't roll over. If you reach your monthly limit, the chat bubble hides until next month unless you upgrade.</p></details>
+        <details><summary>Can the agent make up prices or discounts?</summary><p>No. It only quotes the plans, prices and facts you put in your fact sheet. If a visitor asks something that isn't there, it says so and points them to your contact.</p></details>
+        <details><summary>How does the self-learning playbook work?</summary><p>On Growth and Scale, Fence regularly compares chats that reached checkout with chats that didn't, and rewrites its sales playbook: which questions to ask, how to answer common objections, and when to close. It never adds new facts.</p></details>
+        <details><summary>Will visitors know they're talking to an AI?</summary><p>Yes. The chat is labeled "AI assistant", and the agent says it's an AI if anyone asks.</p></details>
+        <details><summary>How do I install it?</summary><p>Paste one script tag on your pricing page. The widget only runs on domains you approve, so nobody else can embed your agent.</p></details>
+        <details><summary>Can I change or cancel my plan?</summary><p>Yes. Upgrade, downgrade or cancel anytime from billing settings. Yearly billing costs about 17% less than monthly. There's no free trial right now.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <div class="cta">
+        <img src="fence-logo.svg" alt="">
+        <h2>Stop losing buyers on your pricing page</h2>
+        <p>Give every visitor a salesperson who knows your plans, never makes things up, and gets better every week.</p>
+        <a class="btn" href="#plans">Get started</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="fence-logo.svg" alt="">Fence</a>
+    <span>Mockup · Plans and prices are placeholders</span>
+  </div>
+</footer>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="yes" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="#EEF2FF"/><path d="M6 10.3l2.6 2.6L14.2 7.3" fill="none" stroke="#2D5BFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="no" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="#F2F3F7"/><path d="M7 7l6 6M13 7l-6 6" stroke="#A3A8BC" stroke-width="1.8" stroke-linecap="round"/></symbol>
+</svg>
+
+<script>
+  (function () {
+    var buttons = document.querySelectorAll('.toggle button');
+    function setPeriod(period) {
+      buttons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.period === period)); });
+      document.querySelectorAll('.price').forEach(function (el) { el.textContent = '$' + el.dataset[period]; });
+      document.querySelectorAll('.was').forEach(function (el) { el.textContent = period === 'yearly' ? '$' + el.dataset.was : ''; });
+      document.querySelectorAll('.per').forEach(function (el) { el.textContent = el.dataset[period + 'Note']; });
+      document.querySelectorAll('.tp').forEach(function (el) { el.textContent = el.dataset[period]; });
+    }
+    buttons.forEach(function (b) { b.addEventListener('click', function () { setPeriod(b.dataset.period); }); });
+    setPeriod('yearly');
+
+    var header = document.querySelector('header');
+    addEventListener('scroll', function () { header.classList.toggle('scrolled', scrollY > 8); }, { passive: true });
+  })();
+</script>
+<script src="https://web-production-ae535.up.railway.app/widget.js" data-site="fence" data-color="#2D5BFF" async></script>
+</body>
+</html>
